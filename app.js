@@ -58,6 +58,9 @@ function persistSession(message = "Session saved on this browser.") {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       start: document.querySelector("#sessionStart").value,
+      startChoice: document.querySelector("#startTimeChoice").dataset.applied === "true"
+        ? document.querySelector("#startTimeChoice").value
+        : "manual",
       date: sessionDate,
       exams,
     }));
@@ -90,6 +93,11 @@ function restoreSession() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved || !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(saved.start)) return;
     document.querySelector("#sessionStart").value = saved.start;
+    const startChoice = document.querySelector("#startTimeChoice");
+    startChoice.value = [...startChoice.options].some(option => option.value === saved.startChoice)
+      ? saved.startChoice
+      : "manual";
+    startChoice.dataset.applied = "true";
     if (/^\d{4}-\d{2}-\d{2}$/.test(saved.date)) sessionDate = saved.date;
     if (Array.isArray(saved.exams) && saved.exams.length >= 1 && saved.exams.length <= 3) {
       exams = saved.exams.map(exam => {
@@ -578,17 +586,30 @@ editors.addEventListener("change", event => {
 });
 editors.addEventListener("input", updateLeavingPreviews);
 document.querySelector("#currentTimeButton").addEventListener("click", () => {
+  const choice = document.querySelector("#startTimeChoice");
   const now = new Date();
   sessionDate = dateKey(now);
-  document.querySelector("#sessionStart").value = inputTime(now);
-  persistSession("Current browser time saved as the session start.");
+  if (choice.value === "current") {
+    document.querySelector("#sessionStart").value = inputTime(now);
+  } else if (choice.value !== "manual") {
+    document.querySelector("#sessionStart").value = choice.value;
+  }
+  const choiceLabel = choice.options[choice.selectedIndex].textContent.trim();
+  choice.dataset.applied = "true";
+  persistSession(`${choiceLabel} saved as the session start.`);
   renderCards();
   updateLeavingPreviews();
 });
 document.querySelector("#sessionStart").addEventListener("input", () => {
   sessionDate = dateKey(new Date());
+  document.querySelector("#startTimeChoice").value = "manual";
+  document.querySelector("#startTimeChoice").dataset.applied = "true";
   document.querySelector("#sessionSaveStatus").textContent = "Apply the session to save this start time.";
   updateLeavingPreviews();
+});
+document.querySelector("#startTimeChoice").addEventListener("change", event => {
+  event.currentTarget.dataset.applied = "false";
+  document.querySelector("#sessionSaveStatus").textContent = "Press “Set start time” to use this preset.";
 });
 scrim.addEventListener("click", closePanel);
 document.addEventListener("keydown", event => { if (event.key === "Escape" && panel.classList.contains("open")) closePanel(); });
@@ -603,6 +624,8 @@ document.querySelector("#cancelReset").addEventListener("click", () => resetDial
 document.querySelector("#confirmReset").addEventListener("click", () => {
   exams = structuredClone(SAMPLE_EXAMS);
   sessionDate = dateKey(new Date());
+  document.querySelector("#startTimeChoice").value = "manual";
+  document.querySelector("#startTimeChoice").dataset.applied = "true";
   document.querySelector("#sessionStart").value = "09:00:00";
   renderEditors();
   renderCards();
