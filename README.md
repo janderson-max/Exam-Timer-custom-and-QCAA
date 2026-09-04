@@ -6,7 +6,11 @@ The current subjects and durations are demonstration data only. They are not ver
 
 The draft includes distinct subject colours, a configurable per-exam permitted leaving window, enlarged room-readable timings, a supervisor setup panel, and a viewport-fitted full-screen display.
 
+Supervisors can configure between one and three simultaneous exams.
+
 Session start time and setup are stored in the browser so they survive an accidental tab or browser closure. Browser storage is local to the device and browser profile in use.
+
+Countdowns are recalculated against the browser clock every second, including waiting, perusal/planning, working, AARA extra time, and finished states.
 
 ## Preview locally
 

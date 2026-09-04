@@ -5,7 +5,9 @@ const SAMPLE_EXAMS = [
 ];
 
 const STORAGE_KEY = "exam-room-timer-session-v1";
+const EXAM_COLOURS = ["blue", "purple", "teal", "orange", "rose"];
 let exams = structuredClone(SAMPLE_EXAMS);
+let sessionDate = dateKey(new Date());
 
 const examGrid = document.querySelector("#examGrid");
 const editors = document.querySelector("#examEditors");
@@ -34,9 +36,14 @@ function timeFromMinutes(base, minutes) {
 
 function getBaseDate() {
   const [hour, minute, second = 0] = document.querySelector("#sessionStart").value.split(":").map(Number);
-  const date = new Date();
-  date.setHours(hour, minute, second, 0);
-  return date;
+  const [year, month, day] = sessionDate.split("-").map(Number);
+  return new Date(year, month - 1, day, hour, minute, second, 0);
+}
+
+function dateKey(date) {
+  return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((value, index) => String(value).padStart(index === 0 ? 4 : 2, "0"))
+    .join("-");
 }
 
 function inputTime(date) {
@@ -49,6 +56,7 @@ function persistSession(message = "Session saved on this browser.") {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       start: document.querySelector("#sessionStart").value,
+      date: sessionDate,
       exams,
     }));
     document.querySelector("#sessionSaveStatus").textContent = message;
@@ -62,7 +70,8 @@ function restoreSession() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved || !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(saved.start)) return;
     document.querySelector("#sessionStart").value = saved.start;
-    if (Array.isArray(saved.exams) && saved.exams.length === SAMPLE_EXAMS.length) exams = saved.exams;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(saved.date)) sessionDate = saved.date;
+    if (Array.isArray(saved.exams) && saved.exams.length >= 1 && saved.exams.length <= 3) exams = saved.exams;
     document.querySelector("#sessionSaveStatus").textContent = "Previous session restored from this browser.";
   } catch {
     // Ignore incomplete or invalid saved draft data and use the sample session.
@@ -75,8 +84,33 @@ function durationLabel(minutes) {
   return [hours ? `${hours} hr${hours === 1 ? "" : "s"}` : "", mins ? `${mins} min` : ""].filter(Boolean).join(" ");
 }
 
+function formatRemaining(milliseconds) {
+  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function examTimes(exam, start = getBaseDate()) {
+  const startMs = start.getTime();
+  const workingStartMs = startMs + exam.perusal * 60_000;
+  const finishMs = workingStartMs + exam.working * 60_000;
+  const extraMinutes = Math.round((exam.working / 30) * exam.aara);
+  return {
+    startMs,
+    workingStartMs,
+    warningMs: Math.max(workingStartMs, finishMs - 10 * 60_000),
+    finishMs,
+    aaraFinishMs: finishMs + extraMinutes * 60_000,
+    leavingStartMs: workingStartMs + exam.leaveAfterStart * 60_000,
+    leavingEndMs: finishMs - exam.noLeaveBeforeEnd * 60_000,
+  };
+}
+
 function renderCards() {
   const start = getBaseDate();
+  examGrid.dataset.count = String(exams.length);
   examGrid.innerHTML = exams.map((exam, index) => {
     const workingStart = exam.perusal;
     const finish = workingStart + exam.working;
@@ -86,16 +120,16 @@ function renderCards() {
     const leavingEnds = finish - exam.noLeaveBeforeEnd;
     const hasLeavingWindow = leavingStarts <= leavingEnds;
     return `
-      <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}">
+      <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}" data-exam-index="${index}">
         <header class="exam-header">
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}</span>
           <h3>${escapeHtml(exam.name)}</h3>
           <p>${exam.perusal ? `${exam.perusal} min perusal / planning` : "No perusal / planning"} · ${durationLabel(exam.working)} working</p>
         </header>
-        <div class="phase">
-          <span class="phase-label">WORKING</span>
-          <strong>${index === 0 ? "1:17:42" : index === 1 ? "1:47:42" : "1:27:42"}</strong>
-          <small>remaining</small>
+        <div class="phase phase-waiting">
+          <span class="phase-label">WAITING</span>
+          <strong class="countdown">0:00:00</strong>
+          <small class="countdown-caption">until exam begins</small>
         </div>
         <div class="timeline">
           <div class="timeline-row"><span>${exam.perusal ? "Perusal / planning" : "Exam begins"}</span><strong>${timeFromMinutes(start, 0)}</strong></div>
@@ -103,7 +137,7 @@ function renderCards() {
           <div class="timeline-row warning"><span>10-minute warning</span><strong>${timeFromMinutes(start, warning)}</strong></div>
           <div class="timeline-row finish"><span>Working finishes</span><strong>${timeFromMinutes(start, finish)}</strong></div>
         </div>
-        <div class="permissions">
+        <div class="permissions" data-leaving-start="${new Date(start.getTime() + leavingStarts * 60_000).toISOString()}" data-leaving-end="${new Date(start.getTime() + leavingEnds * 60_000).toISOString()}">
           <span>PERMITTED LEAVING WINDOW</span>
           ${hasLeavingWindow
             ? `<strong>${timeFromMinutes(start, leavingStarts)} <i>to</i> ${timeFromMinutes(start, leavingEnds)}</strong>`
@@ -115,12 +149,100 @@ function renderCards() {
 
   const first = exams[0];
   document.querySelector("#nextEvent").textContent = `10-minute warning at ${timeFromMinutes(start, first.perusal + first.working - 10)}`;
+  updateSessionState();
+}
+
+function updateSessionState(now = new Date()) {
+  const nowMs = now.getTime();
+  const upcomingEvents = [];
+  let hasWorking = false;
+  let hasPerusal = false;
+  let hasAara = false;
+  let hasWaiting = false;
+
+  exams.forEach((exam, index) => {
+    const card = examGrid.querySelector(`[data-exam-index="${index}"]`);
+    if (!card) return;
+    const phase = card.querySelector(".phase");
+    const label = card.querySelector(".phase-label");
+    const countdown = card.querySelector(".countdown");
+    const caption = card.querySelector(".countdown-caption");
+    const permissions = card.querySelector(".permissions");
+    const permissionLabel = permissions.querySelector("span");
+    const times = examTimes(exam);
+    let remaining = 0;
+    let phaseName = "FINISHED";
+    let phaseClass = "phase-finished";
+    let phaseCaption = "exam complete";
+
+    if (nowMs < times.startMs) {
+      hasWaiting = true;
+      phaseName = "STARTS IN";
+      phaseClass = "phase-waiting";
+      phaseCaption = "until exam begins";
+      remaining = times.startMs - nowMs;
+      upcomingEvents.push({ time: times.startMs, label: `${exam.name} begins` });
+    } else if (exam.perusal > 0 && nowMs < times.workingStartMs) {
+      hasPerusal = true;
+      phaseName = "PERUSAL / PLANNING";
+      phaseClass = "phase-perusal";
+      phaseCaption = "remaining";
+      remaining = times.workingStartMs - nowMs;
+      upcomingEvents.push({ time: times.workingStartMs, label: `${exam.name} working time begins` });
+    } else if (nowMs < times.finishMs) {
+      hasWorking = true;
+      phaseName = "WORKING";
+      phaseClass = "phase-working";
+      phaseCaption = "remaining";
+      remaining = times.finishMs - nowMs;
+      if (nowMs < times.warningMs) upcomingEvents.push({ time: times.warningMs, label: `${exam.name} 10-minute warning` });
+      upcomingEvents.push({ time: times.finishMs, label: `${exam.name} working time finishes` });
+    } else if (exam.aara > 0 && nowMs < times.aaraFinishMs) {
+      hasAara = true;
+      phaseName = "AARA EXTRA TIME";
+      phaseClass = "phase-aara";
+      phaseCaption = "remaining for approved students";
+      remaining = times.aaraFinishMs - nowMs;
+      upcomingEvents.push({ time: times.aaraFinishMs, label: `${exam.name} AARA time finishes` });
+    }
+
+    phase.className = `phase ${phaseClass}`;
+    label.textContent = phaseName;
+    countdown.textContent = formatRemaining(remaining);
+    caption.textContent = phaseCaption;
+
+    permissions.classList.toggle("leaving-now", nowMs >= times.leavingStartMs && nowMs <= times.leavingEndMs);
+    permissions.classList.toggle("leaving-closed", nowMs > times.leavingEndMs);
+    permissionLabel.textContent = nowMs >= times.leavingStartMs && nowMs <= times.leavingEndMs
+      ? "LEAVING PERMITTED NOW"
+      : nowMs > times.leavingEndMs
+        ? "LEAVING WINDOW CLOSED"
+        : "PERMITTED LEAVING WINDOW";
+  });
+
+  document.querySelector("#roomHeading").textContent = hasWorking
+    ? "Working time in progress"
+    : hasPerusal
+      ? "Perusal / planning in progress"
+      : hasAara
+        ? "AARA extra time in progress"
+        : hasWaiting
+          ? "Exams have not started"
+          : "All exams have finished";
+
+  upcomingEvents.sort((a, b) => a.time - b.time);
+  document.querySelector("#nextEvent").textContent = upcomingEvents.length
+    ? `${upcomingEvents[0].label} at ${formatClock(new Date(upcomingEvents[0].time))}`
+    : "No further scheduled events";
 }
 
 function renderEditors() {
   editors.innerHTML = exams.map((exam, index) => `
     <section class="editor">
-      <h3>Exam ${index + 1}</h3>
+      <div class="editor-heading">
+        <h3>Exam ${index + 1}</h3>
+        <button class="remove-exam" type="button" data-remove-exam="${index}" ${exams.length === 1 ? "disabled" : ""} aria-label="Remove exam ${index + 1}">Remove</button>
+      </div>
       <div class="editor-grid">
         <label class="wide">Display name<input name="name-${index}" value="${escapeHtml(exam.name)}" required /></label>
         <label>Category
@@ -141,11 +263,40 @@ function renderEditors() {
         </label>
         <label>Subject colour
           <select name="colour-${index}">
-            ${["blue", "purple", "teal", "orange", "rose"].map(colour => `<option value="${colour}" ${colour === exam.colour ? "selected" : ""}>${colour[0].toUpperCase() + colour.slice(1)}</option>`).join("")}
+            ${EXAM_COLOURS.map(colour => `<option value="${colour}" ${colour === exam.colour ? "selected" : ""}>${colour[0].toUpperCase() + colour.slice(1)}</option>`).join("")}
           </select>
         </label>
       </div>
     </section>`).join("");
+
+  document.querySelector("#examCount").textContent = `${exams.length} of 3`;
+  document.querySelector("#addExamButton").disabled = exams.length >= 3;
+}
+
+function readEditorDraft() {
+  return exams.map((exam, index) => ({
+    name: form.elements.namedItem(`name-${index}`)?.value ?? exam.name,
+    type: form.elements.namedItem(`type-${index}`)?.value ?? exam.type,
+    perusal: Number(form.elements.namedItem(`perusal-${index}`)?.value ?? exam.perusal),
+    working: Number(form.elements.namedItem(`working-${index}`)?.value ?? exam.working),
+    aara: Number(form.elements.namedItem(`aara-${index}`)?.value ?? exam.aara),
+    leaveAfterStart: Number(form.elements.namedItem(`leaveAfterStart-${index}`)?.value ?? exam.leaveAfterStart),
+    noLeaveBeforeEnd: Number(form.elements.namedItem(`noLeaveBeforeEnd-${index}`)?.value ?? exam.noLeaveBeforeEnd),
+    colour: form.elements.namedItem(`colour-${index}`)?.value ?? exam.colour,
+  }));
+}
+
+function newExam(index) {
+  return {
+    name: `Custom exam ${index + 1}`,
+    type: "Custom sample",
+    perusal: 10,
+    working: 90,
+    aara: 0,
+    leaveAfterStart: 30,
+    noLeaveBeforeEnd: 15,
+    colour: EXAM_COLOURS[index % EXAM_COLOURS.length],
+  };
 }
 
 function escapeHtml(value) {
@@ -196,10 +347,30 @@ form.addEventListener("submit", event => {
 
 document.querySelector("#setupButton").addEventListener("click", openPanel);
 document.querySelector("#closeSetupButton").addEventListener("click", closePanel);
+document.querySelector("#addExamButton").addEventListener("click", () => {
+  if (exams.length >= 3) return;
+  exams = readEditorDraft();
+  exams.push(newExam(exams.length));
+  renderEditors();
+});
+editors.addEventListener("click", event => {
+  const button = event.target.closest("[data-remove-exam]");
+  if (!button || exams.length <= 1) return;
+  const nextExams = readEditorDraft();
+  nextExams.splice(Number(button.dataset.removeExam), 1);
+  exams = nextExams;
+  renderEditors();
+});
 document.querySelector("#currentTimeButton").addEventListener("click", () => {
-  document.querySelector("#sessionStart").value = inputTime(new Date());
+  const now = new Date();
+  sessionDate = dateKey(now);
+  document.querySelector("#sessionStart").value = inputTime(now);
   persistSession("Current browser time saved as the session start.");
   renderCards();
+});
+document.querySelector("#sessionStart").addEventListener("input", () => {
+  sessionDate = dateKey(new Date());
+  document.querySelector("#sessionSaveStatus").textContent = "Apply the session to save this start time.";
 });
 scrim.addEventListener("click", closePanel);
 document.addEventListener("keydown", event => { if (event.key === "Escape" && panel.classList.contains("open")) closePanel(); });
@@ -213,6 +384,7 @@ document.querySelector("#resetButton").addEventListener("click", () => resetDial
 document.querySelector("#cancelReset").addEventListener("click", () => resetDialog.close());
 document.querySelector("#confirmReset").addEventListener("click", () => {
   exams = structuredClone(SAMPLE_EXAMS);
+  sessionDate = dateKey(new Date());
   document.querySelector("#sessionStart").value = "09:00:00";
   renderEditors();
   renderCards();
@@ -224,6 +396,7 @@ function updateClock() {
   const now = new Date();
   document.querySelector("#clock").textContent = formatClock(now);
   document.querySelector("#date").textContent = formatDate(now);
+  updateSessionState(now);
 }
 
 restoreSession();
