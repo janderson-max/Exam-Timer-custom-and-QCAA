@@ -124,6 +124,10 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .scrim { position: fixed; z-index: 10; inset: 0; background: rgba(10, 19, 36, .5); }
 form > label { display: grid; gap: 5px; margin: 18px 0; font-size: .8rem; font-weight: 700; }
 input, select { width: 100%; min-height: 42px; border: 1px solid #bfc8d5; border-radius: 6px; padding: 7px 10px; background: white; color: var(--ink); }
+.time-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.button-current-time { border-color: var(--navy); background: var(--navy); color: white; white-space: nowrap; }
+.button-current-time:hover { background: var(--navy-2); }
+.save-status { color: var(--muted); font-size: .72rem; font-weight: 500; }
 .editor { margin: 15px 0; padding: 15px; border: 1px solid var(--line); border-radius: 8px; }
 .editor h3 { margin: 0 0 12px; font-size: .95rem; }
 .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }

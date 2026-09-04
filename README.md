@@ -6,6 +6,8 @@ The current subjects and durations are demonstration data only. They are not ver
 
 The draft includes distinct subject colours, a configurable per-exam permitted leaving window, enlarged room-readable timings, a supervisor setup panel, and a viewport-fitted full-screen display.
 
+Session start time and setup are stored in the browser so they survive an accidental tab or browser closure. Browser storage is local to the device and browser profile in use.
+
 ## Preview locally
 
 Open `index.html` in a browser. No build process or dependencies are required.

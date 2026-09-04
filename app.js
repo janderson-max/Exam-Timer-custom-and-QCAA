@@ -4,6 +4,7 @@ const SAMPLE_EXAMS = [
   { name: "Custom Year 11 Science", type: "Custom sample", perusal: 10, working: 100, aara: 10, leaveAfterStart: 30, noLeaveBeforeEnd: 15, colour: "teal" },
 ];
 
+const STORAGE_KEY = "exam-room-timer-session-v1";
 let exams = structuredClone(SAMPLE_EXAMS);
 
 const examGrid = document.querySelector("#examGrid");
@@ -28,14 +29,44 @@ function formatDate(date) {
 function timeFromMinutes(base, minutes) {
   const date = new Date(base);
   date.setMinutes(date.getMinutes() + minutes);
-  return new Intl.DateTimeFormat("en-AU", { hour: "numeric", minute: "2-digit", hour12: true }).format(date);
+  return new Intl.DateTimeFormat("en-AU", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).format(date);
 }
 
 function getBaseDate() {
-  const [hour, minute] = document.querySelector("#sessionStart").value.split(":").map(Number);
+  const [hour, minute, second = 0] = document.querySelector("#sessionStart").value.split(":").map(Number);
   const date = new Date();
-  date.setHours(hour, minute, 0, 0);
+  date.setHours(hour, minute, second, 0);
   return date;
+}
+
+function inputTime(date) {
+  return [date.getHours(), date.getMinutes(), date.getSeconds()]
+    .map(value => String(value).padStart(2, "0"))
+    .join(":");
+}
+
+function persistSession(message = "Session saved on this browser.") {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      start: document.querySelector("#sessionStart").value,
+      exams,
+    }));
+    document.querySelector("#sessionSaveStatus").textContent = message;
+  } catch {
+    document.querySelector("#sessionSaveStatus").textContent = "Browser storage is unavailable; keep this tab open.";
+  }
+}
+
+function restoreSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!saved || !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(saved.start)) return;
+    document.querySelector("#sessionStart").value = saved.start;
+    if (Array.isArray(saved.exams) && saved.exams.length === SAMPLE_EXAMS.length) exams = saved.exams;
+    document.querySelector("#sessionSaveStatus").textContent = "Previous session restored from this browser.";
+  } catch {
+    // Ignore incomplete or invalid saved draft data and use the sample session.
+  }
 }
 
 function durationLabel(minutes) {
@@ -158,12 +189,18 @@ form.addEventListener("submit", event => {
   }
 
   exams = nextExams;
+  persistSession();
   renderCards();
   closePanel();
 });
 
 document.querySelector("#setupButton").addEventListener("click", openPanel);
 document.querySelector("#closeSetupButton").addEventListener("click", closePanel);
+document.querySelector("#currentTimeButton").addEventListener("click", () => {
+  document.querySelector("#sessionStart").value = inputTime(new Date());
+  persistSession("Current browser time saved as the session start.");
+  renderCards();
+});
 scrim.addEventListener("click", closePanel);
 document.addEventListener("keydown", event => { if (event.key === "Escape" && panel.classList.contains("open")) closePanel(); });
 
@@ -176,9 +213,10 @@ document.querySelector("#resetButton").addEventListener("click", () => resetDial
 document.querySelector("#cancelReset").addEventListener("click", () => resetDialog.close());
 document.querySelector("#confirmReset").addEventListener("click", () => {
   exams = structuredClone(SAMPLE_EXAMS);
-  document.querySelector("#sessionStart").value = "09:00";
+  document.querySelector("#sessionStart").value = "09:00:00";
   renderEditors();
   renderCards();
+  persistSession("Sample session restored and saved on this browser.");
   resetDialog.close();
 });
 
@@ -188,6 +226,7 @@ function updateClock() {
   document.querySelector("#date").textContent = formatDate(now);
 }
 
+restoreSession();
 renderEditors();
 renderCards();
 updateClock();
