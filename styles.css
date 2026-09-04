@@ -78,12 +78,17 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .next-event strong { font-size: 1rem; }
 
 .exam-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.exam-card { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
-.exam-card.current { border: 2px solid var(--green); }
-.exam-header { min-height: 105px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
-.exam-number { color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .1em; }
+.exam-card { --subject: #286aa6; overflow: hidden; border: 1px solid var(--line); border-top: 6px solid var(--subject); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+.exam-card.current { box-shadow: 0 0 0 2px var(--subject), var(--shadow); }
+.colour-blue { --subject: #276aa5; }
+.colour-purple { --subject: #7553a6; }
+.colour-teal { --subject: #147e79; }
+.colour-orange { --subject: #ad5f18; }
+.colour-rose { --subject: #a83e67; }
+.exam-header { min-height: 105px; padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,.22); background: var(--subject); color: white; }
+.exam-number { color: rgba(255,255,255,.78); font-size: .72rem; font-weight: 800; letter-spacing: .1em; }
 .exam-header h3 { margin: 7px 0 5px; font-size: clamp(1.05rem, 1.65vw, 1.42rem); line-height: 1.15; }
-.exam-header p { margin: 0; color: var(--muted); font-size: .84rem; }
+.exam-header p { margin: 0; color: rgba(255,255,255,.84); font-size: .84rem; }
 .phase { padding: 18px 20px; text-align: center; background: var(--green-soft); }
 .phase-label { display: inline-flex; padding: 5px 9px; border-radius: 99px; background: var(--green); color: white; font-size: .7rem; font-weight: 800; letter-spacing: .09em; }
 .phase strong { display: block; margin: 8px 0 0; font-size: clamp(2.25rem, 5vw, 4.5rem); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.055em; }
@@ -92,11 +97,16 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .timeline-row { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid #edf0f4; }
 .timeline-row:last-child { border: 0; }
 .timeline-row span { color: var(--muted); font-size: .82rem; }
-.timeline-row strong { font-size: .93rem; font-variant-numeric: tabular-nums; }
+.timeline-row strong { font-size: clamp(1.08rem, 1.45vw, 1.45rem); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .timeline-row.warning strong { color: #9c6500; }
 .timeline-row.finish strong { color: var(--red); }
 .aara { margin: 0 20px 18px; padding: 12px; border-radius: 6px; background: var(--blue-soft); color: #174e87; font-size: .8rem; text-align: center; }
-.aara strong { display: block; margin-top: 2px; font-size: 1rem; }
+.aara strong { display: block; margin-top: 2px; font-size: 1.25rem; }
+.permissions { margin: 0 20px 10px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-left: 4px solid var(--subject); border-radius: 5px; background: #eef2f7; }
+.permissions span { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .06em; }
+.permissions strong { color: var(--subject); font-size: clamp(1.1rem, 1.45vw, 1.45rem); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.permissions strong i { padding: 0 2px; color: var(--muted); font-size: .7em; font-style: normal; font-weight: 600; }
+.permissions .invalid-window { color: var(--red); }
 
 .notice-bar { margin-top: 18px; padding: 15px 18px; display: flex; align-items: center; gap: 13px; border-radius: 8px; background: var(--navy-2); color: white; }
 .notice-bar p { margin: 0; font-size: .86rem; }
@@ -131,7 +141,7 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .exam-grid { grid-template-columns: 1fr; }
   .exam-card { display: grid; grid-template-columns: minmax(190px, .8fr) 1fr 1.2fr; }
   .exam-header { border: 0; }.phase { display: grid; align-content: center; }.timeline { padding-top: 13px; }
-  .aara { grid-column: 1 / -1; }
+  .permissions, .aara { grid-column: 1 / -1; }
 }
 
 @media (max-width: 620px) {
@@ -140,8 +150,33 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .room-status, .notice-bar { align-items: flex-start; flex-direction: column; }
   .next-event { text-align: left; }.legend { margin-left: 0; justify-content: flex-start; }
   .exam-card { display: block; }.editor-grid { grid-template-columns: 1fr; }.editor-grid .wide { grid-column: auto; }
+  .timeline-row strong, .permissions strong { font-size: 1.35rem; }
 }
 
-@media (display-mode: fullscreen) {
-  .draft-pill { border-color: #a9bbd5; }
+@media (min-width: 921px) {
+  :fullscreen { overflow: hidden; }
+  :fullscreen body { height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+  :fullscreen .topbar { min-height: 88px; padding-top: 10px; padding-bottom: 10px; }
+  :fullscreen .brand-block h1 { margin-top: 4px; font-size: 1.5rem; }
+  :fullscreen .brand-block p { display: none; }
+  :fullscreen .clock-block strong { font-size: clamp(2.7rem, 4.4vw, 4.4rem); }
+  :fullscreen main { min-height: 0; padding: 12px 28px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  :fullscreen .room-status { min-height: 60px; margin: 0; padding: 9px 16px; }
+  :fullscreen .room-status h2 { font-size: 1.45rem; }
+  :fullscreen .exam-grid { min-height: 0; gap: 14px; }
+  :fullscreen .exam-card { min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; }
+  :fullscreen .exam-header { min-height: 82px; padding: 11px 16px; }
+  :fullscreen .exam-header h3 { margin: 4px 0; font-size: clamp(1.12rem, 1.6vw, 1.5rem); }
+  :fullscreen .phase { padding: 10px 16px 9px; }
+  :fullscreen .phase strong { margin-top: 4px; font-size: clamp(2.5rem, 4.4vw, 4.6rem); }
+  :fullscreen .phase small { margin-top: 1px; }
+  :fullscreen .timeline { min-height: 0; padding: 3px 16px; display: grid; grid-template-rows: repeat(4, 1fr); }
+  :fullscreen .timeline-row { min-height: 0; }
+  :fullscreen .timeline-row span { font-size: clamp(.8rem, 1vw, 1rem); }
+  :fullscreen .timeline-row strong { font-size: clamp(1.15rem, 1.65vw, 1.65rem); }
+  :fullscreen .permissions { margin: 5px 16px 7px; padding: 7px 10px; }
+  :fullscreen .aara { margin: 0 16px 9px; padding: 7px 10px; }
+  :fullscreen .aara strong { display: inline; margin-left: 6px; }
+  :fullscreen .notice-bar { min-height: 48px; margin: 0; padding: 8px 14px; }
+  :fullscreen .draft-pill { border-color: #a9bbd5; }
 }

@@ -1,7 +1,7 @@
 const SAMPLE_EXAMS = [
-  { name: "Sample Mathematics — Paper 1", type: "EA sample", perusal: 5, working: 90, aara: 5 },
-  { name: "Sample English — Written response", type: "IA sample", perusal: 10, working: 120, aara: 0 },
-  { name: "Custom Year 11 Science", type: "Custom sample", perusal: 10, working: 100, aara: 10 },
+  { name: "Sample Mathematics — Paper 1", type: "EA sample", perusal: 5, working: 90, aara: 5, leaveAfterStart: 30, noLeaveBeforeEnd: 15, colour: "blue" },
+  { name: "Sample English — Written response", type: "IA sample", perusal: 10, working: 120, aara: 0, leaveAfterStart: 60, noLeaveBeforeEnd: 30, colour: "purple" },
+  { name: "Custom Year 11 Science", type: "Custom sample", perusal: 10, working: 100, aara: 10, leaveAfterStart: 30, noLeaveBeforeEnd: 15, colour: "teal" },
 ];
 
 let exams = structuredClone(SAMPLE_EXAMS);
@@ -51,8 +51,11 @@ function renderCards() {
     const finish = workingStart + exam.working;
     const warning = Math.max(workingStart, finish - 10);
     const extra = Math.round((exam.working / 30) * exam.aara);
+    const leavingStarts = workingStart + exam.leaveAfterStart;
+    const leavingEnds = finish - exam.noLeaveBeforeEnd;
+    const hasLeavingWindow = leavingStarts <= leavingEnds;
     return `
-      <article class="exam-card ${index === 0 ? "current" : ""}">
+      <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}">
         <header class="exam-header">
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}</span>
           <h3>${escapeHtml(exam.name)}</h3>
@@ -68,6 +71,12 @@ function renderCards() {
           <div class="timeline-row"><span>Working starts</span><strong>${timeFromMinutes(start, workingStart)}</strong></div>
           <div class="timeline-row warning"><span>10-minute warning</span><strong>${timeFromMinutes(start, warning)}</strong></div>
           <div class="timeline-row finish"><span>Working finishes</span><strong>${timeFromMinutes(start, finish)}</strong></div>
+        </div>
+        <div class="permissions">
+          <span>PERMITTED LEAVING WINDOW</span>
+          ${hasLeavingWindow
+            ? `<strong>${timeFromMinutes(start, leavingStarts)} <i>to</i> ${timeFromMinutes(start, leavingEnds)}</strong>`
+            : `<strong class="invalid-window">No valid window</strong>`}
         </div>
         ${exam.aara ? `<div class="aara">AARA +${exam.aara}/30 finish <strong>${timeFromMinutes(start, finish + extra)}</strong></div>` : ""}
       </article>`;
@@ -90,11 +99,18 @@ function renderEditors() {
         </label>
         <label>Perusal / planning (min)<input name="perusal-${index}" type="number" min="0" max="120" value="${exam.perusal}" required /></label>
         <label>Working time (min)<input name="working-${index}" type="number" min="1" max="600" value="${exam.working}" required /></label>
+        <label>Cannot leave for first (working min)<input name="leaveAfterStart-${index}" type="number" min="0" max="600" value="${exam.leaveAfterStart}" required /></label>
+        <label>Cannot leave during final (min)<input name="noLeaveBeforeEnd-${index}" type="number" min="0" max="600" value="${exam.noLeaveBeforeEnd}" required /></label>
         <label>AARA extra time
           <select name="aara-${index}">
             <option value="0" ${exam.aara === 0 ? "selected" : ""}>None</option>
             <option value="5" ${exam.aara === 5 ? "selected" : ""}>5 min per 30</option>
             <option value="10" ${exam.aara === 10 ? "selected" : ""}>10 min per 30</option>
+          </select>
+        </label>
+        <label>Subject colour
+          <select name="colour-${index}">
+            ${["blue", "purple", "teal", "orange", "rose"].map(colour => `<option value="${colour}" ${colour === exam.colour ? "selected" : ""}>${colour[0].toUpperCase() + colour.slice(1)}</option>`).join("")}
           </select>
         </label>
       </div>
@@ -121,13 +137,27 @@ function closePanel() {
 form.addEventListener("submit", event => {
   event.preventDefault();
   const data = new FormData(form);
-  exams = exams.map((_, index) => ({
+  const nextExams = exams.map((_, index) => ({
     name: data.get(`name-${index}`),
     type: data.get(`type-${index}`),
     perusal: Number(data.get(`perusal-${index}`)),
     working: Number(data.get(`working-${index}`)),
     aara: Number(data.get(`aara-${index}`)),
+    leaveAfterStart: Number(data.get(`leaveAfterStart-${index}`)),
+    noLeaveBeforeEnd: Number(data.get(`noLeaveBeforeEnd-${index}`)),
+    colour: data.get(`colour-${index}`),
   }));
+
+  const invalidIndex = nextExams.findIndex(exam => exam.leaveAfterStart + exam.noLeaveBeforeEnd > exam.working);
+  if (invalidIndex !== -1) {
+    const input = form.elements.namedItem(`noLeaveBeforeEnd-${invalidIndex}`);
+    input.setCustomValidity("The two restricted periods overlap, so there would be no permitted leaving window.");
+    input.reportValidity();
+    input.addEventListener("input", () => input.setCustomValidity(""), { once: true });
+    return;
+  }
+
+  exams = nextExams;
   renderCards();
   closePanel();
 });
