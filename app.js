@@ -181,7 +181,11 @@ function examTimes(exam, start = getBaseDate()) {
   const startMs = Number(runtime?.sessionStartMs) || scheduledStartMs;
   const workingStartMs = Number(runtime?.workingStartMs) || scheduledWorkingStartMs;
   const finishMs = Number(runtime?.finishMs) || scheduledFinishMs;
-  const aaraFinishByRate = runtime?.aaraFinishByRate || aaraFinishTimes(exam, finishMs);
+  const calculatedAaraFinishes = aaraFinishTimes(exam, finishMs);
+  const aaraFinishByRate = Object.fromEntries(aaraRates(exam).map(rate => [
+    rate,
+    Number(runtime?.aaraFinishByRate?.[rate]) || calculatedAaraFinishes[rate],
+  ]));
   const aaraFinishMs = Math.max(finishMs, ...Object.values(aaraFinishByRate).map(Number));
   let leavingStartMs = startMs + Number(exam.leaveAfterStart) * 60_000;
   if (exam.leavingPolicy === "qcaa-ea-2025") {
@@ -201,6 +205,80 @@ function examTimes(exam, start = getBaseDate()) {
     leavingStartMs,
     leavingEndMs: finishMs - Number(exam.noLeaveBeforeEnd) * 60_000,
   };
+}
+
+function materializeRuntime(exam) {
+  if (exam.runtime) return exam.runtime;
+  const times = examTimes(exam);
+  exam.runtime = {
+    sessionStartMs: times.startMs,
+    workingStartMs: times.workingStartMs,
+    finishMs: times.finishMs,
+    aaraFinishByRate: { ...times.aaraFinishByRate },
+    pausedAt: null,
+  };
+  return exam.runtime;
+}
+
+function pauseExam(index, at = Date.now()) {
+  const exam = exams[index];
+  if (!exam) return;
+  const times = examTimes(exam);
+  if (at >= times.aaraFinishMs) return;
+  const runtime = materializeRuntime(exam);
+  if (!runtime.pausedAt) runtime.pausedAt = at;
+}
+
+function resumeExam(index, at = Date.now()) {
+  const exam = exams[index];
+  const runtime = exam?.runtime;
+  const pausedAt = Number(runtime?.pausedAt);
+  if (!runtime || !pausedAt) return;
+
+  const pausedDuration = Math.max(0, at - pausedAt);
+  ["sessionStartMs", "workingStartMs", "finishMs"].forEach(field => {
+    if (Number(runtime[field]) > pausedAt) runtime[field] = Number(runtime[field]) + pausedDuration;
+  });
+  runtime.aaraFinishByRate = Object.fromEntries(
+    Object.entries(runtime.aaraFinishByRate || {}).map(([rate, finish]) => [
+      rate,
+      Number(finish) > pausedAt ? Number(finish) + pausedDuration : Number(finish),
+    ]),
+  );
+  runtime.pausedAt = null;
+}
+
+function startPerusal(index, at = Date.now()) {
+  const exam = exams[index];
+  if (!exam) return;
+  exam.runtime = makeRuntime(exam, at, at + exam.perusal * 60_000);
+}
+
+function startWorking(index, at = Date.now()) {
+  const exam = exams[index];
+  if (!exam) return;
+  const scheduledStartMs = Number(exam.runtime?.sessionStartMs) || examTimes(exam).startMs;
+  exam.runtime = makeRuntime(exam, Math.min(scheduledStartMs, at), at);
+}
+
+function clearRuntimeOverrides() {
+  exams.forEach(exam => delete exam.runtime);
+}
+
+function controlIndexes(scope) {
+  return scope === "all" ? exams.map((_, index) => index) : [selectedExamIndex];
+}
+
+function updateExamControlDialog() {
+  const exam = exams[selectedExamIndex];
+  if (!exam) return;
+  const pausedAt = Number(exam.runtime?.pausedAt);
+  document.querySelector("#examControlTitle").textContent = exam.name;
+  document.querySelector("#examControlStatus").textContent = pausedAt
+    ? `Paused at ${formatClock(new Date(pausedAt))}. Choose how to continue.`
+    : "This timer is not currently paused. You can start a new phase now.";
+  examControlDialog.querySelector('[data-control-action="resume"][data-control-scope="one"]').disabled = !pausedAt;
+  examControlDialog.querySelector('[data-control-action="resume"][data-control-scope="all"]').disabled = !exams.some(item => item.runtime?.pausedAt);
 }
 
 function renderCards() {
@@ -513,6 +591,37 @@ function closePanel() {
   scrim.hidden = true;
 }
 
+examGrid.addEventListener("click", event => {
+  const clockButton = event.target.closest("[data-exam-clock]");
+  if (!clockButton) return;
+  selectedExamIndex = Number(clockButton.dataset.examClock);
+  pauseExam(selectedExamIndex);
+  persistSession("Exam timer state saved on this browser.");
+  renderCards();
+  updateExamControlDialog();
+  examControlDialog.showModal();
+});
+
+document.querySelector("#closeExamControl").addEventListener("click", () => examControlDialog.close());
+examControlDialog.addEventListener("click", event => {
+  const actionButton = event.target.closest("[data-control-action]");
+  if (!actionButton) return;
+  const indexes = controlIndexes(actionButton.dataset.controlScope);
+  const at = Date.now();
+  const action = actionButton.dataset.controlAction;
+
+  indexes.forEach(index => {
+    if (action === "perusal") startPerusal(index, at);
+    if (action === "working") startWorking(index, at);
+    if (action === "resume") resumeExam(index, at);
+    if (action === "pause") pauseExam(index, at);
+  });
+
+  persistSession("Exam timer state saved on this browser.");
+  renderCards();
+  examControlDialog.close();
+});
+
 form.addEventListener("submit", event => {
   event.preventDefault();
   const nextExams = readEditorDraft();
@@ -565,7 +674,8 @@ editors.addEventListener("click", event => {
 
     const existingId = String(exam.presetId).startsWith("custom-") ? exam.presetId : null;
     const id = existingId || `custom-${Date.now()}`;
-    const savedPreset = { ...exam, id, presetId: id, source: "Saved custom exam", sourceUrl: "" };
+    const { runtime, ...definition } = exam;
+    const savedPreset = { ...definition, id, presetId: id, source: "Saved custom exam", sourceUrl: "" };
     const existingIndex = customPresets.findIndex(preset => preset.id === id);
     if (existingIndex === -1) customPresets.push(savedPreset);
     else customPresets[existingIndex] = savedPreset;
@@ -637,6 +747,7 @@ editors.addEventListener("input", updateLeavingPreviews);
 document.querySelector("#currentTimeButton").addEventListener("click", () => {
   const choice = document.querySelector("#startTimeChoice");
   const now = new Date();
+  clearRuntimeOverrides();
   sessionDate = dateKey(now);
   choice.value = "manual";
   document.querySelector("#sessionStart").value = inputTime(now);
@@ -646,6 +757,7 @@ document.querySelector("#currentTimeButton").addEventListener("click", () => {
   updateLeavingPreviews();
 });
 document.querySelector("#sessionStart").addEventListener("input", () => {
+  clearRuntimeOverrides();
   sessionDate = dateKey(new Date());
   document.querySelector("#startTimeChoice").value = "manual";
   document.querySelector("#startTimeChoice").dataset.applied = "true";
@@ -666,6 +778,7 @@ document.querySelector("#startTimeChoice").addEventListener("change", event => {
     return;
   }
 
+  clearRuntimeOverrides();
   document.querySelector("#sessionStart").value = choice.value;
   updateStartTimeControls();
   const choiceLabel = choice.options[choice.selectedIndex].textContent.trim();
