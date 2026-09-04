@@ -1,7 +1,7 @@
 const SAMPLE_EXAMS = [
-  { name: "Sample Mathematics — Paper 1", type: "EA", perusal: 5, working: 90, aara: 5, leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: "teacher", colour: "blue", presetId: "manual" },
-  { name: "Sample English — Written response", type: "IA", perusal: 10, working: 120, aara: 0, leaveAfterStart: 60, noLeaveBeforeEnd: 30, leavingPolicy: "teacher", colour: "purple", presetId: "manual" },
-  { name: "Custom Year 11 Science", type: "Custom", perusal: 10, working: 100, aara: 10, leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: "teacher", colour: "teal", presetId: "manual" },
+  { name: "Sample Mathematics — Paper 1", type: "EA", perusal: 5, working: 90, aaraOptions: [5, 10], leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: "teacher", colour: "blue", presetId: "manual" },
+  { name: "Sample English — Written response", type: "IA", perusal: 10, working: 120, aaraOptions: [], leaveAfterStart: 60, noLeaveBeforeEnd: 30, leavingPolicy: "teacher", colour: "purple", presetId: "manual" },
+  { name: "Custom Year 11 Science", type: "Custom", perusal: 10, working: 100, aaraOptions: [10], leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: "teacher", colour: "teal", presetId: "manual" },
 ];
 
 const STORAGE_KEY = "exam-room-timer-session-v1";
@@ -70,7 +70,7 @@ function persistSession(message = "Session saved on this browser.") {
 function loadCustomPresets() {
   try {
     const saved = JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY));
-    return Array.isArray(saved) ? saved : [];
+    return Array.isArray(saved) ? saved.map(exam => ({ ...exam, aaraOptions: aaraRates(exam) })) : [];
   } catch {
     return [];
   }
@@ -100,6 +100,7 @@ function restoreSession() {
           leaveAfterStart: hasCurrentLeavingModel
             ? exam.leaveAfterStart
             : Number(exam.leaveAfterStart || 0) + Number(exam.perusal || 0),
+          aaraOptions: aaraRates(exam),
           leavingPolicy: exam.leavingPolicy || "teacher",
           presetId: exam.presetId || "manual",
         };
@@ -125,11 +126,20 @@ function formatRemaining(milliseconds) {
   return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function aaraRates(exam) {
+  if (Array.isArray(exam.aaraOptions)) {
+    return [...new Set(exam.aaraOptions.map(Number).filter(rate => rate === 5 || rate === 10))].sort((a, b) => a - b);
+  }
+  const legacyRate = Number(exam.aara);
+  return legacyRate === 5 || legacyRate === 10 ? [legacyRate] : [];
+}
+
 function examTimes(exam, start = getBaseDate()) {
   const startMs = start.getTime();
   const workingStartMs = startMs + exam.perusal * 60_000;
   const finishMs = workingStartMs + exam.working * 60_000;
-  const extraMinutes = Math.round((exam.working / 30) * exam.aara);
+  const maximumAaraRate = Math.max(0, ...aaraRates(exam));
+  const extraMinutes = Math.round((exam.working / 30) * maximumAaraRate);
   let leavingStartMs = startMs + Number(exam.leaveAfterStart) * 60_000;
   if (exam.leavingPolicy === "qcaa-ea-2025") {
     const [scheduledHour, scheduledMinute] = (exam.eaScheduledStart || "09:00").split(":").map(Number);
@@ -156,7 +166,7 @@ function renderCards() {
     const workingStart = exam.perusal;
     const finish = workingStart + exam.working;
     const warning = Math.max(workingStart, finish - 10);
-    const extra = Math.round((exam.working / 30) * exam.aara);
+    const selectedAaraRates = aaraRates(exam);
     return `
       <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}" data-exam-index="${index}">
         <header class="exam-header">
@@ -175,7 +185,14 @@ function renderCards() {
           <div class="timeline-row warning"><span>10-minute warning</span><strong>${timeFromMinutes(start, warning)}</strong></div>
           <div class="timeline-row finish"><span>Working finishes</span><strong>${timeFromMinutes(start, finish)}</strong></div>
         </div>
-        ${exam.aara ? `<div class="aara">AARA +${exam.aara}/30 finish <strong>${timeFromMinutes(start, finish + extra)}</strong></div>` : ""}
+        ${selectedAaraRates.length ? `
+          <div class="aara">
+            <span class="aara-title">AARA finish times</span>
+            ${selectedAaraRates.map(rate => {
+              const extra = Math.round((exam.working / 30) * rate);
+              return `<span class="aara-time"><b>+${rate}/30</b><strong>${timeFromMinutes(start, finish + extra)}</strong></span>`;
+            }).join("")}
+          </div>` : ""}
       </article>`;
   }).join("");
 
@@ -227,7 +244,7 @@ function updateSessionState(now = new Date()) {
       remaining = times.finishMs - nowMs;
       if (nowMs < times.warningMs) upcomingEvents.push({ time: times.warningMs, label: `${exam.name} 10-minute warning` });
       upcomingEvents.push({ time: times.finishMs, label: `${exam.name} working time finishes` });
-    } else if (exam.aara > 0 && nowMs < times.aaraFinishMs) {
+    } else if (aaraRates(exam).length > 0 && nowMs < times.aaraFinishMs) {
       hasAara = true;
       phaseName = "AARA EXTRA TIME";
       phaseClass = "phase-aara";
@@ -336,13 +353,11 @@ function renderEditors() {
         </label>
         <label>Perusal / planning (min)<input name="perusal-${index}" type="number" min="0" max="120" value="${exam.perusal ?? ""}" required /></label>
         <label>Working time (min)<input name="working-${index}" type="number" min="1" max="600" value="${exam.working ?? ""}" required /></label>
-        <label>AARA extra time
-          <select name="aara-${index}">
-            <option value="0" ${exam.aara === 0 ? "selected" : ""}>None</option>
-            <option value="5" ${exam.aara === 5 ? "selected" : ""}>5 min per 30</option>
-            <option value="10" ${exam.aara === 10 ? "selected" : ""}>10 min per 30</option>
-          </select>
-        </label>
+        <fieldset class="aara-picker">
+          <legend>AARA extra-time groups</legend>
+          <label><input name="aara-${index}" type="checkbox" value="5" ${aaraRates(exam).includes(5) ? "checked" : ""} /> 5 min per 30</label>
+          <label><input name="aara-${index}" type="checkbox" value="10" ${aaraRates(exam).includes(10) ? "checked" : ""} /> 10 min per 30</label>
+        </fieldset>
         ${leavingControls(exam, index)}
         <label>Subject colour
           <select name="colour-${index}">
@@ -399,7 +414,7 @@ function readEditorDraft() {
     type: form.elements.namedItem(`type-${index}`)?.value ?? exam.type,
     perusal: nullableNumber(`perusal-${index}`, exam.perusal),
     working: nullableNumber(`working-${index}`, exam.working),
-    aara: nullableNumber(`aara-${index}`, exam.aara),
+    aaraOptions: [...form.querySelectorAll(`input[name="aara-${index}"]:checked`)].map(input => Number(input.value)),
     leaveAfterStart: nullableNumber(`leaveAfterStart-${index}`, exam.leaveAfterStart),
     noLeaveBeforeEnd: nullableNumber(`noLeaveBeforeEnd-${index}`, exam.noLeaveBeforeEnd),
     leavingPolicy: form.elements.namedItem(`leavingPolicy-${index}`)?.value ?? exam.leavingPolicy ?? "teacher",
@@ -414,7 +429,7 @@ function newExam(index) {
     type: "Custom",
     perusal: 10,
     working: 90,
-    aara: 0,
+    aaraOptions: [],
     leaveAfterStart: 30,
     noLeaveBeforeEnd: 15,
     leavingPolicy: "teacher",

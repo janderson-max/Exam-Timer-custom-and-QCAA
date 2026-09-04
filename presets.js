@@ -37,7 +37,7 @@ function makeSubjectPresets(subject) {
   const common = {
     perusal: 5,
     working: 90,
-    aara: 0,
+    aaraOptions: [],
     colour: subject.colour,
     source,
     sourceUrl: subject.sourceUrl,
@@ -50,7 +50,7 @@ function makeSubjectPresets(subject) {
       type: "FIA",
       perusal: null,
       working: null,
-      aara: 0,
+      aaraOptions: [],
       leaveAfterStart: null,
       noLeaveBeforeEnd: null,
       leavingPolicy: "teacher",

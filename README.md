@@ -14,6 +14,8 @@ Session start time and setup are stored in the browser so they survive an accide
 
 Custom exams can be saved into a separate reusable preset library in the browser. Saved options can be selected, updated or deleted in later sessions.
 
+Both 5-minutes-per-30 and 10-minutes-per-30 AARA groups can be enabled for the same exam, with a separate finish time shown for each group.
+
 Countdowns are recalculated against the browser clock every second, including waiting, perusal/planning, working, AARA extra time, and finished states.
 
 ## QCAA data included
