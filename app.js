@@ -1,12 +1,14 @@
 const SAMPLE_EXAMS = [
-  { name: "Sample Mathematics — Paper 1", type: "EA sample", perusal: 5, working: 90, aara: 5, leaveAfterStart: 30, noLeaveBeforeEnd: 15, colour: "blue" },
-  { name: "Sample English — Written response", type: "IA sample", perusal: 10, working: 120, aara: 0, leaveAfterStart: 60, noLeaveBeforeEnd: 30, colour: "purple" },
-  { name: "Custom Year 11 Science", type: "Custom sample", perusal: 10, working: 100, aara: 10, leaveAfterStart: 30, noLeaveBeforeEnd: 15, colour: "teal" },
+  { name: "Sample Mathematics — Paper 1", type: "EA", perusal: 5, working: 90, aara: 5, leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: "teacher", colour: "blue", presetId: "manual" },
+  { name: "Sample English — Written response", type: "IA", perusal: 10, working: 120, aara: 0, leaveAfterStart: 60, noLeaveBeforeEnd: 30, leavingPolicy: "teacher", colour: "purple", presetId: "manual" },
+  { name: "Custom Year 11 Science", type: "Custom", perusal: 10, working: 100, aara: 10, leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: "teacher", colour: "teal", presetId: "manual" },
 ];
 
 const STORAGE_KEY = "exam-room-timer-session-v1";
+const CUSTOM_PRESETS_KEY = "exam-room-timer-custom-presets-v1";
 const EXAM_COLOURS = ["blue", "purple", "teal", "orange", "rose"];
 let exams = structuredClone(SAMPLE_EXAMS);
+let customPresets = loadCustomPresets();
 let sessionDate = dateKey(new Date());
 
 const examGrid = document.querySelector("#examGrid");
@@ -65,13 +67,44 @@ function persistSession(message = "Session saved on this browser.") {
   }
 }
 
+function loadCustomPresets() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY));
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistCustomPresets() {
+  try {
+    localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(customPresets));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function restoreSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved || !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(saved.start)) return;
     document.querySelector("#sessionStart").value = saved.start;
     if (/^\d{4}-\d{2}-\d{2}$/.test(saved.date)) sessionDate = saved.date;
-    if (Array.isArray(saved.exams) && saved.exams.length >= 1 && saved.exams.length <= 3) exams = saved.exams;
+    if (Array.isArray(saved.exams) && saved.exams.length >= 1 && saved.exams.length <= 3) {
+      exams = saved.exams.map(exam => {
+        const hasCurrentLeavingModel = Boolean(exam.leavingPolicy);
+        return {
+          ...exam,
+          type: String(exam.type || "Custom").replace(" sample", ""),
+          leaveAfterStart: hasCurrentLeavingModel
+            ? exam.leaveAfterStart
+            : Number(exam.leaveAfterStart || 0) + Number(exam.perusal || 0),
+          leavingPolicy: exam.leavingPolicy || "teacher",
+          presetId: exam.presetId || "manual",
+        };
+      });
+    }
     document.querySelector("#sessionSaveStatus").textContent = "Previous session restored from this browser.";
   } catch {
     // Ignore incomplete or invalid saved draft data and use the sample session.
@@ -97,14 +130,22 @@ function examTimes(exam, start = getBaseDate()) {
   const workingStartMs = startMs + exam.perusal * 60_000;
   const finishMs = workingStartMs + exam.working * 60_000;
   const extraMinutes = Math.round((exam.working / 30) * exam.aara);
+  let leavingStartMs = startMs + Number(exam.leaveAfterStart) * 60_000;
+  if (exam.leavingPolicy === "qcaa-ea-2025") {
+    const [scheduledHour, scheduledMinute] = (exam.eaScheduledStart || "09:00").split(":").map(Number);
+    const scheduledStart = new Date(start);
+    scheduledStart.setHours(scheduledHour, scheduledMinute, 0, 0);
+    leavingStartMs = scheduledStart.getTime() + QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart * 60_000;
+  }
+
   return {
     startMs,
     workingStartMs,
     warningMs: Math.max(workingStartMs, finishMs - 10 * 60_000),
     finishMs,
     aaraFinishMs: finishMs + extraMinutes * 60_000,
-    leavingStartMs: workingStartMs + exam.leaveAfterStart * 60_000,
-    leavingEndMs: finishMs - exam.noLeaveBeforeEnd * 60_000,
+    leavingStartMs,
+    leavingEndMs: finishMs - Number(exam.noLeaveBeforeEnd) * 60_000,
   };
 }
 
@@ -116,9 +157,8 @@ function renderCards() {
     const finish = workingStart + exam.working;
     const warning = Math.max(workingStart, finish - 10);
     const extra = Math.round((exam.working / 30) * exam.aara);
-    const leavingStarts = workingStart + exam.leaveAfterStart;
-    const leavingEnds = finish - exam.noLeaveBeforeEnd;
-    const hasLeavingWindow = leavingStarts <= leavingEnds;
+    const times = examTimes(exam, start);
+    const hasLeavingWindow = times.leavingStartMs <= times.leavingEndMs;
     return `
       <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}" data-exam-index="${index}">
         <header class="exam-header">
@@ -137,10 +177,10 @@ function renderCards() {
           <div class="timeline-row warning"><span>10-minute warning</span><strong>${timeFromMinutes(start, warning)}</strong></div>
           <div class="timeline-row finish"><span>Working finishes</span><strong>${timeFromMinutes(start, finish)}</strong></div>
         </div>
-        <div class="permissions" data-leaving-start="${new Date(start.getTime() + leavingStarts * 60_000).toISOString()}" data-leaving-end="${new Date(start.getTime() + leavingEnds * 60_000).toISOString()}">
+        <div class="permissions">
           <span>PERMITTED LEAVING WINDOW</span>
           ${hasLeavingWindow
-            ? `<strong>${timeFromMinutes(start, leavingStarts)} <i>to</i> ${timeFromMinutes(start, leavingEnds)}</strong>`
+            ? `<strong>${formatClock(new Date(times.leavingStartMs))} <i>to</i> ${formatClock(new Date(times.leavingEndMs))}</strong>`
             : `<strong class="invalid-window">No valid window</strong>`}
         </div>
         ${exam.aara ? `<div class="aara">AARA +${exam.aara}/30 finish <strong>${timeFromMinutes(start, finish + extra)}</strong></div>` : ""}
@@ -218,6 +258,9 @@ function updateSessionState(now = new Date()) {
       : nowMs > times.leavingEndMs
         ? "LEAVING WINDOW CLOSED"
         : "PERMITTED LEAVING WINDOW";
+
+    if (nowMs < times.leavingStartMs) upcomingEvents.push({ time: times.leavingStartMs, label: `${exam.name} leaving window opens` });
+    else if (nowMs <= times.leavingEndMs) upcomingEvents.push({ time: times.leavingEndMs, label: `${exam.name} leaving window closes` });
   });
 
   document.querySelector("#roomHeading").textContent = hasWorking
@@ -236,6 +279,55 @@ function updateSessionState(now = new Date()) {
     : "No further scheduled events";
 }
 
+function presetOptions(selectedId) {
+  const option = preset => `<option value="${preset.id}" ${preset.id === selectedId ? "selected" : ""}>${escapeHtml(preset.name)}</option>`;
+  return `
+    <option value="manual" ${selectedId === "manual" ? "selected" : ""}>Custom / manual exam</option>
+    <optgroup label="QCAA 2025 syllabus">${QCAA_PRESETS.map(option).join("")}</optgroup>
+    ${customPresets.length ? `<optgroup label="Saved custom exams">${customPresets.map(option).join("")}</optgroup>` : ""}`;
+}
+
+function leavingControls(exam, index) {
+  if (exam.leavingPolicy === "qcaa-ea-2025") {
+    return `
+      <label>Leaving rules
+        <select name="leavingPolicy-${index}" data-leaving-policy-index="${index}">
+          <option value="teacher">Teacher-defined</option>
+          <option value="qcaa-ea-2025" selected>QCAA EA June 2025</option>
+        </select>
+      </label>
+      <label>Scheduled EA session
+        <select name="eaScheduledStart-${index}">
+          <option value="09:00" ${exam.eaScheduledStart === "09:00" ? "selected" : ""}>Morning — 9:00 am</option>
+          <option value="12:30" ${exam.eaScheduledStart === "12:30" ? "selected" : ""}>Afternoon — 12:30 pm</option>
+        </select>
+      </label>
+      <p class="field-note wide">Leaving is blocked until 40 minutes after the scheduled start and during the final 10 minutes.</p>`;
+  }
+
+  return `
+    <label>Leaving rules
+      <select name="leavingPolicy-${index}" data-leaving-policy-index="${index}">
+        <option value="teacher" selected>Teacher-defined</option>
+        <option value="qcaa-ea-2025">QCAA EA June 2025</option>
+      </select>
+    </label>
+    <span></span>
+    <label>Cannot leave for first (session min)<input name="leaveAfterStart-${index}" type="number" min="0" max="600" value="${exam.leaveAfterStart ?? ""}" required /></label>
+    <label>Cannot leave during final (min)<input name="noLeaveBeforeEnd-${index}" type="number" min="0" max="600" value="${exam.noLeaveBeforeEnd ?? ""}" required /></label>`;
+}
+
+function sourceNote(exam) {
+  if (!exam.source) return "Manual exam — save it below to reuse it in future sessions.";
+  const source = escapeHtml(exam.source);
+  const syllabusLink = exam.sourceUrl
+    ? `<a href="${exam.sourceUrl}" target="_blank" rel="noreferrer">${source}</a>`
+    : source;
+  return exam.leavingPolicy === "qcaa-ea-2025"
+    ? `${syllabusLink} · <a href="${QCAA_EA_DIRECTIONS.url}" target="_blank" rel="noreferrer">EA leaving directions (June 2025)</a>`
+    : syllabusLink;
+}
+
 function renderEditors() {
   editors.innerHTML = exams.map((exam, index) => `
     <section class="editor">
@@ -244,16 +336,18 @@ function renderEditors() {
         <button class="remove-exam" type="button" data-remove-exam="${index}" ${exams.length === 1 ? "disabled" : ""} aria-label="Remove exam ${index + 1}">Remove</button>
       </div>
       <div class="editor-grid">
+        <label class="wide">Preset
+          <select name="preset-${index}" data-preset-index="${index}">${presetOptions(exam.presetId || "manual")}</select>
+        </label>
+        <p class="preset-source wide">${sourceNote(exam)}</p>
         <label class="wide">Display name<input name="name-${index}" value="${escapeHtml(exam.name)}" required /></label>
         <label>Category
           <select name="type-${index}">
-            ${["Custom sample", "FIA sample", "IA sample", "EA sample"].map(type => `<option ${type === exam.type ? "selected" : ""}>${type}</option>`).join("")}
+            ${["Custom", "FIA", "IA", "EA"].map(type => `<option ${type === exam.type ? "selected" : ""}>${type}</option>`).join("")}
           </select>
         </label>
-        <label>Perusal / planning (min)<input name="perusal-${index}" type="number" min="0" max="120" value="${exam.perusal}" required /></label>
-        <label>Working time (min)<input name="working-${index}" type="number" min="1" max="600" value="${exam.working}" required /></label>
-        <label>Cannot leave for first (working min)<input name="leaveAfterStart-${index}" type="number" min="0" max="600" value="${exam.leaveAfterStart}" required /></label>
-        <label>Cannot leave during final (min)<input name="noLeaveBeforeEnd-${index}" type="number" min="0" max="600" value="${exam.noLeaveBeforeEnd}" required /></label>
+        <label>Perusal / planning (min)<input name="perusal-${index}" type="number" min="0" max="120" value="${exam.perusal ?? ""}" required /></label>
+        <label>Working time (min)<input name="working-${index}" type="number" min="1" max="600" value="${exam.working ?? ""}" required /></label>
         <label>AARA extra time
           <select name="aara-${index}">
             <option value="0" ${exam.aara === 0 ? "selected" : ""}>None</option>
@@ -261,11 +355,16 @@ function renderEditors() {
             <option value="10" ${exam.aara === 10 ? "selected" : ""}>10 min per 30</option>
           </select>
         </label>
+        ${leavingControls(exam, index)}
         <label>Subject colour
           <select name="colour-${index}">
             ${EXAM_COLOURS.map(colour => `<option value="${colour}" ${colour === exam.colour ? "selected" : ""}>${colour[0].toUpperCase() + colour.slice(1)}</option>`).join("")}
           </select>
         </label>
+        <div class="custom-preset-actions wide">
+          <button type="button" class="save-custom" data-save-custom="${index}">${String(exam.presetId).startsWith("custom-") ? "Update saved option" : "Save as custom option"}</button>
+          ${String(exam.presetId).startsWith("custom-") ? `<button type="button" class="delete-custom" data-delete-custom="${index}">Delete saved option</button>` : ""}
+        </div>
       </div>
     </section>`).join("");
 
@@ -273,15 +372,25 @@ function renderEditors() {
   document.querySelector("#addExamButton").disabled = exams.length >= 3;
 }
 
+function nullableNumber(name, fallback) {
+  const field = form.elements.namedItem(name);
+  if (!field) return fallback ?? null;
+  return field.value === "" ? null : Number(field.value);
+}
+
 function readEditorDraft() {
   return exams.map((exam, index) => ({
+    ...exam,
+    presetId: form.elements.namedItem(`preset-${index}`)?.value ?? exam.presetId ?? "manual",
     name: form.elements.namedItem(`name-${index}`)?.value ?? exam.name,
     type: form.elements.namedItem(`type-${index}`)?.value ?? exam.type,
-    perusal: Number(form.elements.namedItem(`perusal-${index}`)?.value ?? exam.perusal),
-    working: Number(form.elements.namedItem(`working-${index}`)?.value ?? exam.working),
-    aara: Number(form.elements.namedItem(`aara-${index}`)?.value ?? exam.aara),
-    leaveAfterStart: Number(form.elements.namedItem(`leaveAfterStart-${index}`)?.value ?? exam.leaveAfterStart),
-    noLeaveBeforeEnd: Number(form.elements.namedItem(`noLeaveBeforeEnd-${index}`)?.value ?? exam.noLeaveBeforeEnd),
+    perusal: nullableNumber(`perusal-${index}`, exam.perusal),
+    working: nullableNumber(`working-${index}`, exam.working),
+    aara: nullableNumber(`aara-${index}`, exam.aara),
+    leaveAfterStart: nullableNumber(`leaveAfterStart-${index}`, exam.leaveAfterStart),
+    noLeaveBeforeEnd: nullableNumber(`noLeaveBeforeEnd-${index}`, exam.noLeaveBeforeEnd),
+    leavingPolicy: form.elements.namedItem(`leavingPolicy-${index}`)?.value ?? exam.leavingPolicy ?? "teacher",
+    eaScheduledStart: form.elements.namedItem(`eaScheduledStart-${index}`)?.value ?? exam.eaScheduledStart ?? "09:00",
     colour: form.elements.namedItem(`colour-${index}`)?.value ?? exam.colour,
   }));
 }
@@ -289,13 +398,16 @@ function readEditorDraft() {
 function newExam(index) {
   return {
     name: `Custom exam ${index + 1}`,
-    type: "Custom sample",
+    type: "Custom",
     perusal: 10,
     working: 90,
     aara: 0,
     leaveAfterStart: 30,
     noLeaveBeforeEnd: 15,
+    leavingPolicy: "teacher",
+    eaScheduledStart: "09:00",
     colour: EXAM_COLOURS[index % EXAM_COLOURS.length],
+    presetId: "manual",
   };
 }
 
@@ -318,19 +430,10 @@ function closePanel() {
 
 form.addEventListener("submit", event => {
   event.preventDefault();
-  const data = new FormData(form);
-  const nextExams = exams.map((_, index) => ({
-    name: data.get(`name-${index}`),
-    type: data.get(`type-${index}`),
-    perusal: Number(data.get(`perusal-${index}`)),
-    working: Number(data.get(`working-${index}`)),
-    aara: Number(data.get(`aara-${index}`)),
-    leaveAfterStart: Number(data.get(`leaveAfterStart-${index}`)),
-    noLeaveBeforeEnd: Number(data.get(`noLeaveBeforeEnd-${index}`)),
-    colour: data.get(`colour-${index}`),
-  }));
+  const nextExams = readEditorDraft();
 
-  const invalidIndex = nextExams.findIndex(exam => exam.leaveAfterStart + exam.noLeaveBeforeEnd > exam.working);
+  const invalidIndex = nextExams.findIndex(exam => exam.leavingPolicy === "teacher"
+    && exam.leaveAfterStart + exam.noLeaveBeforeEnd > exam.perusal + exam.working);
   if (invalidIndex !== -1) {
     const input = form.elements.namedItem(`noLeaveBeforeEnd-${invalidIndex}`);
     input.setCustomValidity("The two restricted periods overlap, so there would be no permitted leaving window.");
@@ -354,12 +457,93 @@ document.querySelector("#addExamButton").addEventListener("click", () => {
   renderEditors();
 });
 editors.addEventListener("click", event => {
-  const button = event.target.closest("[data-remove-exam]");
-  if (!button || exams.length <= 1) return;
-  const nextExams = readEditorDraft();
-  nextExams.splice(Number(button.dataset.removeExam), 1);
-  exams = nextExams;
-  renderEditors();
+  const removeButton = event.target.closest("[data-remove-exam]");
+  if (removeButton && exams.length > 1) {
+    const nextExams = readEditorDraft();
+    nextExams.splice(Number(removeButton.dataset.removeExam), 1);
+    exams = nextExams;
+    renderEditors();
+    return;
+  }
+
+  const saveButton = event.target.closest("[data-save-custom]");
+  if (saveButton) {
+    const index = Number(saveButton.dataset.saveCustom);
+    const nextExams = readEditorDraft();
+    const exam = nextExams[index];
+    const valid = exam.name.trim() && Number.isFinite(exam.perusal) && Number.isFinite(exam.working)
+      && Number.isFinite(exam.leaveAfterStart) && Number.isFinite(exam.noLeaveBeforeEnd);
+    if (!valid) {
+      document.querySelector("#sessionSaveStatus").textContent = "Complete this exam's timing fields before saving it as an option.";
+      return;
+    }
+
+    const existingId = String(exam.presetId).startsWith("custom-") ? exam.presetId : null;
+    const id = existingId || `custom-${Date.now()}`;
+    const savedPreset = { ...exam, id, presetId: id, source: "Saved custom exam", sourceUrl: "" };
+    const existingIndex = customPresets.findIndex(preset => preset.id === id);
+    if (existingIndex === -1) customPresets.push(savedPreset);
+    else customPresets[existingIndex] = savedPreset;
+    nextExams[index] = savedPreset;
+    exams = nextExams;
+    const saved = persistCustomPresets();
+    renderEditors();
+    document.querySelector("#sessionSaveStatus").textContent = saved
+      ? `“${exam.name}” saved as a reusable custom option.`
+      : "Browser storage is unavailable; the custom option could not be saved.";
+    return;
+  }
+
+  const deleteButton = event.target.closest("[data-delete-custom]");
+  if (deleteButton) {
+    const index = Number(deleteButton.dataset.deleteCustom);
+    const nextExams = readEditorDraft();
+    const id = nextExams[index].presetId;
+    customPresets = customPresets.filter(preset => preset.id !== id);
+    nextExams[index] = { ...nextExams[index], presetId: "manual", source: "", sourceUrl: "" };
+    exams = nextExams;
+    persistCustomPresets();
+    renderEditors();
+    document.querySelector("#sessionSaveStatus").textContent = "Saved custom option deleted; the current exam settings were retained.";
+  }
+});
+editors.addEventListener("change", event => {
+  const presetSelect = event.target.closest("[data-preset-index]");
+  if (presetSelect) {
+    const index = Number(presetSelect.dataset.presetIndex);
+    const nextExams = readEditorDraft();
+    const presetId = presetSelect.value;
+    if (presetId === "manual") {
+      nextExams[index] = { ...nextExams[index], presetId: "manual", source: "", sourceUrl: "" };
+    } else {
+      const preset = [...QCAA_PRESETS, ...customPresets].find(item => item.id === presetId);
+      if (preset) {
+        const current = nextExams[index];
+        const selected = structuredClone(preset);
+        ["perusal", "working", "leaveAfterStart", "noLeaveBeforeEnd"].forEach(field => {
+          if (selected[field] == null) selected[field] = current[field];
+        });
+        nextExams[index] = { ...selected, presetId };
+      }
+    }
+    exams = nextExams;
+    renderEditors();
+    return;
+  }
+
+  const policySelect = event.target.closest("[data-leaving-policy-index]");
+  if (policySelect) {
+    const index = Number(policySelect.dataset.leavingPolicyIndex);
+    const nextExams = readEditorDraft();
+    nextExams[index].leavingPolicy = policySelect.value;
+    if (policySelect.value === "qcaa-ea-2025") {
+      nextExams[index].leaveAfterStart = QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart;
+      nextExams[index].noLeaveBeforeEnd = QCAA_EA_DIRECTIONS.finalMinutes;
+      nextExams[index].eaScheduledStart ||= "09:00";
+    }
+    exams = nextExams;
+    renderEditors();
+  }
 });
 document.querySelector("#currentTimeButton").addEventListener("click", () => {
   const now = new Date();
