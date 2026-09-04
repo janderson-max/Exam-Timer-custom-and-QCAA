@@ -17,6 +17,8 @@ const panel = document.querySelector("#setupPanel");
 const scrim = document.querySelector("#scrim");
 const form = document.querySelector("#setupForm");
 const resetDialog = document.querySelector("#resetDialog");
+const examControlDialog = document.querySelector("#examControlDialog");
+let selectedExamIndex = 0;
 
 function formatClock(date) {
   return new Intl.DateTimeFormat("en-AU", {
@@ -81,7 +83,10 @@ function persistSession(message = "Session saved on this browser.") {
 function loadCustomPresets() {
   try {
     const saved = JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY));
-    return Array.isArray(saved) ? saved.map(exam => ({ ...exam, aaraOptions: aaraRates(exam) })) : [];
+    return Array.isArray(saved) ? saved.map(exam => {
+      const { runtime, ...definition } = exam;
+      return { ...definition, aaraOptions: aaraRates(definition) };
+    }) : [];
   } catch {
     return [];
   }
@@ -150,12 +155,34 @@ function aaraRates(exam) {
   return legacyRate === 5 || legacyRate === 10 ? [legacyRate] : [];
 }
 
-function examTimes(exam, start = getBaseDate()) {
-  const startMs = start.getTime();
-  const workingStartMs = startMs + exam.perusal * 60_000;
+function aaraFinishTimes(exam, finishMs) {
+  return Object.fromEntries(aaraRates(exam).map(rate => [
+    rate,
+    finishMs + Math.round((exam.working / 30) * rate) * 60_000,
+  ]));
+}
+
+function makeRuntime(exam, sessionStartMs, workingStartMs) {
   const finishMs = workingStartMs + exam.working * 60_000;
-  const maximumAaraRate = Math.max(0, ...aaraRates(exam));
-  const extraMinutes = Math.round((exam.working / 30) * maximumAaraRate);
+  return {
+    sessionStartMs,
+    workingStartMs,
+    finishMs,
+    aaraFinishByRate: aaraFinishTimes(exam, finishMs),
+    pausedAt: null,
+  };
+}
+
+function examTimes(exam, start = getBaseDate()) {
+  const scheduledStartMs = start.getTime();
+  const scheduledWorkingStartMs = scheduledStartMs + exam.perusal * 60_000;
+  const scheduledFinishMs = scheduledWorkingStartMs + exam.working * 60_000;
+  const runtime = exam.runtime;
+  const startMs = Number(runtime?.sessionStartMs) || scheduledStartMs;
+  const workingStartMs = Number(runtime?.workingStartMs) || scheduledWorkingStartMs;
+  const finishMs = Number(runtime?.finishMs) || scheduledFinishMs;
+  const aaraFinishByRate = runtime?.aaraFinishByRate || aaraFinishTimes(exam, finishMs);
+  const aaraFinishMs = Math.max(finishMs, ...Object.values(aaraFinishByRate).map(Number));
   let leavingStartMs = startMs + Number(exam.leaveAfterStart) * 60_000;
   if (exam.leavingPolicy === "qcaa-ea-2025") {
     const [scheduledHour, scheduledMinute] = (exam.eaScheduledStart || "09:00").split(":").map(Number);
@@ -169,7 +196,8 @@ function examTimes(exam, start = getBaseDate()) {
     workingStartMs,
     warningMs: Math.max(workingStartMs, finishMs - 10 * 60_000),
     finishMs,
-    aaraFinishMs: finishMs + extraMinutes * 60_000,
+    aaraFinishMs,
+    aaraFinishByRate,
     leavingStartMs,
     leavingEndMs: finishMs - Number(exam.noLeaveBeforeEnd) * 60_000,
   };
@@ -179,13 +207,15 @@ function renderCards() {
   const start = getBaseDate();
   examGrid.dataset.count = String(exams.length);
   examGrid.innerHTML = exams.map((exam, index) => {
-    const workingStart = exam.perusal;
-    const finish = workingStart + exam.working;
-    const warning = Math.max(workingStart, finish - 10);
+    const times = examTimes(exam, start);
     const selectedAaraRates = aaraRates(exam);
+    const isPaused = Boolean(exam.runtime?.pausedAt);
     return `
       <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}" data-exam-index="${index}">
         <header class="exam-header">
+          <button class="exam-clock-button ${isPaused ? "is-paused" : ""}" type="button" data-exam-clock="${index}" aria-label="${isPaused ? "Open controls for paused" : "Pause and control"} ${escapeHtml(exam.name)}" title="${isPaused ? "Timer paused — open controls" : "Pause timer and open controls"}">
+            <span aria-hidden="true">${isPaused ? "Ⅱ" : "◷"}</span>
+          </button>
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}</span>
           <h3>${escapeHtml(exam.name)}</h3>
           <p>${exam.perusal ? `${exam.perusal} min perusal / planning` : "No perusal / planning"} · ${durationLabel(exam.working)} working</p>
@@ -196,24 +226,23 @@ function renderCards() {
           <small class="countdown-caption">until exam begins</small>
         </div>
         <div class="timeline">
-          <div class="timeline-row"><span>${exam.perusal ? "Perusal / planning" : "Exam begins"}</span><strong>${timeFromMinutes(start, 0)}</strong></div>
-          <div class="timeline-row"><span>Working starts</span><strong>${timeFromMinutes(start, workingStart)}</strong></div>
-          <div class="timeline-row warning"><span>10-minute warning</span><strong>${timeFromMinutes(start, warning)}</strong></div>
-          <div class="timeline-row finish"><span>Working finishes</span><strong>${timeFromMinutes(start, finish)}</strong></div>
+          <div class="timeline-row"><span>${exam.perusal ? "Perusal / planning" : "Exam begins"}</span><strong>${formatClock(new Date(times.startMs))}</strong></div>
+          <div class="timeline-row"><span>Working starts</span><strong>${formatClock(new Date(times.workingStartMs))}</strong></div>
+          <div class="timeline-row warning"><span>10-minute warning</span><strong>${formatClock(new Date(times.warningMs))}</strong></div>
+          <div class="timeline-row finish"><span>Working finishes</span><strong>${formatClock(new Date(times.finishMs))}</strong></div>
         </div>
         ${selectedAaraRates.length ? `
           <div class="aara">
             <span class="aara-title">AARA finish times</span>
             ${selectedAaraRates.map(rate => {
-              const extra = Math.round((exam.working / 30) * rate);
-              return `<span class="aara-time"><b>+${rate}/30</b><strong>${timeFromMinutes(start, finish + extra)}</strong></span>`;
+              return `<span class="aara-time"><b>+${rate}/30</b><strong>${formatClock(new Date(times.aaraFinishByRate[rate]))}</strong></span>`;
             }).join("")}
           </div>` : ""}
       </article>`;
   }).join("");
 
   const first = exams[0];
-  document.querySelector("#nextEvent").textContent = `10-minute warning at ${timeFromMinutes(start, first.perusal + first.working - 10)}`;
+  document.querySelector("#nextEvent").textContent = `10-minute warning at ${formatClock(new Date(examTimes(first, start).warningMs))}`;
   updateSessionState();
 }
 
@@ -224,6 +253,7 @@ function updateSessionState(now = new Date()) {
   let hasPerusal = false;
   let hasAara = false;
   let hasWaiting = false;
+  let hasPaused = false;
 
   exams.forEach((exam, index) => {
     const card = examGrid.querySelector(`[data-exam-index="${index}"]`);
@@ -233,40 +263,49 @@ function updateSessionState(now = new Date()) {
     const countdown = card.querySelector(".countdown");
     const caption = card.querySelector(".countdown-caption");
     const times = examTimes(exam);
+    const isPaused = Boolean(exam.runtime?.pausedAt);
+    const phaseNowMs = isPaused ? Number(exam.runtime.pausedAt) : nowMs;
     let remaining = 0;
     let phaseName = "FINISHED";
     let phaseClass = "phase-finished";
     let phaseCaption = "exam complete";
 
-    if (nowMs < times.startMs) {
+    if (phaseNowMs < times.startMs) {
       hasWaiting = true;
       phaseName = "STARTS IN";
       phaseClass = "phase-waiting";
       phaseCaption = "until exam begins";
-      remaining = times.startMs - nowMs;
-      upcomingEvents.push({ time: times.startMs, label: `${exam.name} begins` });
-    } else if (exam.perusal > 0 && nowMs < times.workingStartMs) {
+      remaining = times.startMs - phaseNowMs;
+      if (!isPaused) upcomingEvents.push({ time: times.startMs, label: `${exam.name} begins` });
+    } else if (exam.perusal > 0 && phaseNowMs < times.workingStartMs) {
       hasPerusal = true;
       phaseName = "PERUSAL / PLANNING";
       phaseClass = "phase-perusal";
       phaseCaption = "remaining";
-      remaining = times.workingStartMs - nowMs;
-      upcomingEvents.push({ time: times.workingStartMs, label: `${exam.name} working time begins` });
-    } else if (nowMs < times.finishMs) {
+      remaining = times.workingStartMs - phaseNowMs;
+      if (!isPaused) upcomingEvents.push({ time: times.workingStartMs, label: `${exam.name} working time begins` });
+    } else if (phaseNowMs < times.finishMs) {
       hasWorking = true;
       phaseName = "WORKING";
       phaseClass = "phase-working";
       phaseCaption = "remaining";
-      remaining = times.finishMs - nowMs;
-      if (nowMs < times.warningMs) upcomingEvents.push({ time: times.warningMs, label: `${exam.name} 10-minute warning` });
-      upcomingEvents.push({ time: times.finishMs, label: `${exam.name} working time finishes` });
-    } else if (aaraRates(exam).length > 0 && nowMs < times.aaraFinishMs) {
+      remaining = times.finishMs - phaseNowMs;
+      if (!isPaused && phaseNowMs < times.warningMs) upcomingEvents.push({ time: times.warningMs, label: `${exam.name} 10-minute warning` });
+      if (!isPaused) upcomingEvents.push({ time: times.finishMs, label: `${exam.name} working time finishes` });
+    } else if (aaraRates(exam).length > 0 && phaseNowMs < times.aaraFinishMs) {
       hasAara = true;
       phaseName = "AARA EXTRA TIME";
       phaseClass = "phase-aara";
       phaseCaption = "remaining for approved students";
-      remaining = times.aaraFinishMs - nowMs;
-      upcomingEvents.push({ time: times.aaraFinishMs, label: `${exam.name} AARA time finishes` });
+      remaining = times.aaraFinishMs - phaseNowMs;
+      if (!isPaused) upcomingEvents.push({ time: times.aaraFinishMs, label: `${exam.name} AARA time finishes` });
+    }
+
+    if (isPaused) {
+      hasPaused = true;
+      phaseName = `PAUSED · ${phaseName}`;
+      phaseClass = "phase-paused";
+      phaseCaption = "timer paused";
     }
 
     phase.className = `phase ${phaseClass}`;
@@ -276,7 +315,9 @@ function updateSessionState(now = new Date()) {
 
   });
 
-  document.querySelector("#roomHeading").textContent = hasWorking
+  document.querySelector("#roomHeading").textContent = hasPaused
+    ? "One or more exam timers paused"
+    : hasWorking
     ? "Working time in progress"
     : hasPerusal
       ? "Perusal / planning in progress"

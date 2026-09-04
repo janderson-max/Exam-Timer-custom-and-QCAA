@@ -112,6 +112,41 @@
       </div>
     </dialog>
 
+    <dialog class="exam-control-dialog" id="examControlDialog">
+      <div class="dialog-title-row">
+        <div>
+          <span class="eyebrow">EXAM TIME CONTROLS</span>
+          <h2 id="examControlTitle">Exam controls</h2>
+        </div>
+        <button class="icon-button" id="closeExamControl" type="button" aria-label="Close exam controls">×</button>
+      </div>
+      <p class="control-status" id="examControlStatus">This exam is paused.</p>
+      <p class="control-warning">Opening these controls pauses the selected exam. Closing this window leaves it paused until a start or resume action is chosen.</p>
+      <div class="control-action-grid">
+        <button class="control-action" type="button" data-control-action="perusal" data-control-scope="one">
+          <strong>Start perusal now</strong><span>This exam only</span>
+        </button>
+        <button class="control-action" type="button" data-control-action="perusal" data-control-scope="all">
+          <strong>Start perusal now</strong><span>All exams</span>
+        </button>
+        <button class="control-action" type="button" data-control-action="working" data-control-scope="one">
+          <strong>Start working now</strong><span>This exam only</span>
+        </button>
+        <button class="control-action" type="button" data-control-action="working" data-control-scope="all">
+          <strong>Start working now</strong><span>All exams</span>
+        </button>
+        <button class="control-action control-resume" type="button" data-control-action="resume" data-control-scope="one">
+          <strong>Resume timer</strong><span>This exam only</span>
+        </button>
+        <button class="control-action control-resume" type="button" data-control-action="resume" data-control-scope="all">
+          <strong>Resume paused timers</strong><span>All exams</span>
+        </button>
+        <button class="control-action control-pause-all" type="button" data-control-action="pause" data-control-scope="all">
+          <strong>Pause all timers</strong><span>All exams</span>
+        </button>
+      </div>
+    </dialog>
+
     <script src="presets.js"></script>
     <script src="app.js"></script>
   </body>
