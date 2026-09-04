@@ -162,7 +162,7 @@ function aaraFinishTimes(exam, finishMs) {
   ]));
 }
 
-function makeRuntime(exam, sessionStartMs, workingStartMs) {
+function makeRuntime(exam, sessionStartMs, workingStartMs, startedPhase = null) {
   const finishMs = workingStartMs + exam.working * 60_000;
   return {
     sessionStartMs,
@@ -170,6 +170,7 @@ function makeRuntime(exam, sessionStartMs, workingStartMs) {
     finishMs,
     aaraFinishByRate: aaraFinishTimes(exam, finishMs),
     pausedAt: null,
+    startedPhase,
   };
 }
 
@@ -216,6 +217,7 @@ function materializeRuntime(exam) {
     finishMs: times.finishMs,
     aaraFinishByRate: { ...times.aaraFinishByRate },
     pausedAt: null,
+    startedPhase: null,
   };
   return exam.runtime;
 }
@@ -251,14 +253,16 @@ function resumeExam(index, at = Date.now()) {
 function startPerusal(index, at = Date.now()) {
   const exam = exams[index];
   if (!exam) return;
-  exam.runtime = makeRuntime(exam, at, at + exam.perusal * 60_000);
+  exam.runtime = makeRuntime(exam, at, at + exam.perusal * 60_000, "perusal");
 }
 
 function startWorking(index, at = Date.now()) {
   const exam = exams[index];
   if (!exam) return;
-  const scheduledStartMs = Number(exam.runtime?.sessionStartMs) || examTimes(exam).startMs;
-  exam.runtime = makeRuntime(exam, Math.min(scheduledStartMs, at), at);
+  const perusalStartedAt = exam.runtime?.startedPhase === "perusal"
+    ? Math.min(Number(exam.runtime.sessionStartMs) || at, at)
+    : at;
+  exam.runtime = makeRuntime(exam, perusalStartedAt, at, "working");
 }
 
 function clearRuntimeOverrides() {
@@ -408,7 +412,9 @@ function updateSessionState(now = new Date()) {
   upcomingEvents.sort((a, b) => a.time - b.time);
   document.querySelector("#nextEvent").textContent = upcomingEvents.length
     ? `${upcomingEvents[0].label} at ${formatClock(new Date(upcomingEvents[0].time))}`
-    : "No further scheduled events";
+    : hasPaused
+      ? "Paused — use an exam clock to continue"
+      : "No further scheduled events";
 }
 
 function presetOptions(selectedId) {
