@@ -62,9 +62,25 @@
 
       <form id="setupForm">
         <label>Session start
+          <select id="startTimeChoice" aria-label="Choose a session start-time preset">
+            <option value="current">Current browser time</option>
+            <optgroup label="QCAA EA scheduled sessions">
+              <option value="09:00:00">Morning session — 9:00 am</option>
+              <option value="12:30:00">Afternoon session — 12:30 pm</option>
+            </optgroup>
+            <optgroup label="School period start + 5 minutes">
+              <option value="08:40:00">Period 1 — 8:40 am</option>
+              <option value="09:35:00">Period 2 — 9:35 am</option>
+              <option value="11:10:00">Period 3 — 11:10 am</option>
+              <option value="12:05:00">Period 4 — 12:05 pm</option>
+              <option value="13:40:00">Period 5 — 1:40 pm</option>
+              <option value="14:30:00">Period 6 — 2:30 pm</option>
+            </optgroup>
+            <option value="manual">Manual time entered below</option>
+          </select>
           <span class="time-input-row">
             <input id="sessionStart" type="time" value="09:00:00" step="1" required />
-            <button class="button button-current-time" id="currentTimeButton" type="button">Use current time</button>
+            <button class="button button-current-time" id="currentTimeButton" type="button">Set start time</button>
           </span>
           <small class="save-status" id="sessionSaveStatus">Saved on this browser when the session is applied.</small>
         </label>
