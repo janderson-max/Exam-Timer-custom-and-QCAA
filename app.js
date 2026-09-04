@@ -54,6 +54,14 @@ function inputTime(date) {
     .join(":");
 }
 
+function updateStartTimeControls() {
+  const choice = document.querySelector("#startTimeChoice");
+  const isManual = choice.value === "manual";
+  document.querySelector("#manualTimeControls").hidden = !isManual;
+  document.querySelector("#fixedStartSummary").hidden = isManual;
+  if (!isManual) document.querySelector("#fixedStartValue").textContent = formatClock(getBaseDate());
+}
+
 function persistSession(message = "Session saved on this browser.") {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -589,14 +597,10 @@ document.querySelector("#currentTimeButton").addEventListener("click", () => {
   const choice = document.querySelector("#startTimeChoice");
   const now = new Date();
   sessionDate = dateKey(now);
-  if (choice.value === "current") {
-    document.querySelector("#sessionStart").value = inputTime(now);
-  } else if (choice.value !== "manual") {
-    document.querySelector("#sessionStart").value = choice.value;
-  }
-  const choiceLabel = choice.options[choice.selectedIndex].textContent.trim();
+  choice.value = "manual";
+  document.querySelector("#sessionStart").value = inputTime(now);
   choice.dataset.applied = "true";
-  persistSession(`${choiceLabel} saved as the session start.`);
+  persistSession("Current browser time saved as the manual session start.");
   renderCards();
   updateLeavingPreviews();
 });
@@ -604,12 +608,29 @@ document.querySelector("#sessionStart").addEventListener("input", () => {
   sessionDate = dateKey(new Date());
   document.querySelector("#startTimeChoice").value = "manual";
   document.querySelector("#startTimeChoice").dataset.applied = "true";
-  document.querySelector("#sessionSaveStatus").textContent = "Apply the session to save this start time.";
+  document.querySelector("#sessionSaveStatus").textContent = "Manual session time changed.";
   updateLeavingPreviews();
 });
+document.querySelector("#sessionStart").addEventListener("change", () => {
+  persistSession("Manual session start saved on this browser.");
+  renderCards();
+});
 document.querySelector("#startTimeChoice").addEventListener("change", event => {
-  event.currentTarget.dataset.applied = "false";
-  document.querySelector("#sessionSaveStatus").textContent = "Press “Set start time” to use this preset.";
+  const choice = event.currentTarget;
+  sessionDate = dateKey(new Date());
+  choice.dataset.applied = "true";
+  if (choice.value === "manual") {
+    updateStartTimeControls();
+    document.querySelector("#sessionSaveStatus").textContent = "Enter a time or choose “Use current time”.";
+    return;
+  }
+
+  document.querySelector("#sessionStart").value = choice.value;
+  updateStartTimeControls();
+  const choiceLabel = choice.options[choice.selectedIndex].textContent.trim();
+  persistSession(`${choiceLabel} applied and saved as the session start.`);
+  renderCards();
+  updateLeavingPreviews();
 });
 scrim.addEventListener("click", closePanel);
 document.addEventListener("keydown", event => { if (event.key === "Escape" && panel.classList.contains("open")) closePanel(); });
@@ -627,6 +648,7 @@ document.querySelector("#confirmReset").addEventListener("click", () => {
   document.querySelector("#startTimeChoice").value = "manual";
   document.querySelector("#startTimeChoice").dataset.applied = "true";
   document.querySelector("#sessionStart").value = "09:00:00";
+  updateStartTimeControls();
   renderEditors();
   renderCards();
   persistSession("Sample session restored and saved on this browser.");
@@ -641,6 +663,7 @@ function updateClock() {
 }
 
 restoreSession();
+updateStartTimeControls();
 renderEditors();
 renderCards();
 updateClock();

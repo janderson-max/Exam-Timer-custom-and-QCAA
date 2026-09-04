@@ -137,6 +137,10 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 form > label { display: grid; gap: 5px; margin: 18px 0; font-size: .8rem; font-weight: 700; }
 input, select { width: 100%; min-height: 42px; border: 1px solid #bfc8d5; border-radius: 6px; padding: 7px 10px; background: white; color: var(--ink); }
 .time-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.time-input-row[hidden], .fixed-start-summary[hidden] { display: none; }
+.fixed-start-summary { min-height: 48px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #bfc8d5; border-radius: 6px; background: #f5f7fa; }
+.fixed-start-summary span { color: var(--muted); font-size: .74rem; font-weight: 600; }
+.fixed-start-summary strong { color: var(--navy); font-size: 1.08rem; font-variant-numeric: tabular-nums; }
 .button-current-time { border-color: var(--navy); background: var(--navy); color: white; white-space: nowrap; }
 .button-current-time:hover { background: var(--navy-2); }
 .save-status { color: var(--muted); font-size: .72rem; font-weight: 500; }
@@ -197,6 +201,7 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .timeline-row strong { font-size: 1.35rem; }
   .leaving-preview { align-items: flex-start; flex-direction: column; }
   .leaving-preview strong { text-align: left; }
+  .fixed-start-summary { align-items: flex-start; flex-direction: column; }
 }
 
 @media (min-width: 921px) {
