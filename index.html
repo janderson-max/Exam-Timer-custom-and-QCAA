@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14213d" />
+    <title>Exam Room Timer — Interface Draft</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="draft-pill">INTERFACE DRAFT</span>
+        <h1>Exam Room Timer</h1>
+        <p>Sample subjects and timings — not official QCAA data</p>
+      </div>
+      <div class="clock-block" aria-label="Current local time">
+        <span id="date">Friday 4 September</span>
+        <strong id="clock">9:05:00 AM</strong>
+      </div>
+      <div class="header-actions">
+        <button class="button button-secondary" id="fullscreenButton" type="button">Full screen</button>
+        <button class="button button-primary" id="setupButton" type="button">Setup exams</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="room-status" aria-live="polite">
+        <div>
+          <span class="eyebrow">ROOM STATUS</span>
+          <h2 id="roomHeading">Working time in progress</h2>
+        </div>
+        <div class="next-event">
+          <span>Next event</span>
+          <strong id="nextEvent">10-minute warning at 10:45 AM</strong>
+        </div>
+      </section>
+
+      <section class="exam-grid" id="examGrid" aria-label="Active exams"></section>
+
+      <section class="notice-bar">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <p><strong>Candidate reminder</strong><br />Remain seated and follow supervisor instructions when your exam finishes.</p>
+        <div class="legend" aria-label="Colour key">
+          <span><i class="dot dot-blue"></i> Perusal / planning</span>
+          <span><i class="dot dot-green"></i> Working</span>
+          <span><i class="dot dot-amber"></i> Warning</span>
+          <span><i class="dot dot-red"></i> Finished</span>
+        </div>
+      </section>
+    </main>
+
+    <aside class="setup-panel" id="setupPanel" aria-hidden="true" aria-labelledby="setupTitle">
+      <div class="panel-header">
+        <div>
+          <span class="eyebrow">SUPERVISOR VIEW</span>
+          <h2 id="setupTitle">Set up this session</h2>
+        </div>
+        <button class="icon-button" id="closeSetupButton" type="button" aria-label="Close setup">×</button>
+      </div>
+      <p class="panel-note">This prototype uses custom sample data. Official presets can be connected later.</p>
+
+      <form id="setupForm">
+        <label>Session start
+          <input id="sessionStart" type="time" value="09:00" required />
+        </label>
+        <div id="examEditors"></div>
+        <div class="panel-actions">
+          <button class="button button-secondary" id="resetButton" type="button">Restore sample</button>
+          <button class="button button-primary" type="submit">Apply to display</button>
+        </div>
+      </form>
+    </aside>
+    <div class="scrim" id="scrim" hidden></div>
+
+    <dialog id="resetDialog">
+      <h2>Restore the sample session?</h2>
+      <p>This replaces the current draft entries. It does not affect the Excel workbook.</p>
+      <div class="dialog-actions">
+        <button class="button button-secondary" id="cancelReset" type="button">Cancel</button>
+        <button class="button button-danger" id="confirmReset" type="button">Restore sample</button>
+      </div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
