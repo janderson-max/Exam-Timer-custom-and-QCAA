@@ -6,6 +6,8 @@ The app includes sourced 2025-syllabus presets for General Mathematics, Mathemat
 
 The draft includes distinct subject colours, a configurable per-exam permitted leaving window, enlarged room-readable timings, a supervisor setup panel, and a viewport-fitted full-screen display.
 
+Permitted leaving windows are shown only in the supervisor setup panel, not on the student-facing room display.
+
 Supervisors can configure between one and three simultaneous exams.
 
 Session start time and setup are stored in the browser so they survive an accidental tab or browser closure. Browser storage is local to the device and browser profile in use.

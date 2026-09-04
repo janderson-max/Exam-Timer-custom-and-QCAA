@@ -116,15 +116,6 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .timeline-row.finish strong { color: var(--red); }
 .aara { margin: 0 20px 18px; padding: 12px; border-radius: 6px; background: var(--blue-soft); color: #174e87; font-size: .8rem; text-align: center; }
 .aara strong { display: block; margin-top: 2px; font-size: 1.25rem; }
-.permissions { margin: 0 20px 10px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-left: 4px solid var(--subject); border-radius: 5px; background: #eef2f7; }
-.permissions span { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .06em; }
-.permissions strong { color: var(--subject); font-size: clamp(1.1rem, 1.45vw, 1.45rem); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.permissions strong i { padding: 0 2px; color: var(--muted); font-size: .7em; font-style: normal; font-weight: 600; }
-.permissions .invalid-window { color: var(--red); }
-.permissions.leaving-now { border-left-color: var(--green); background: var(--green-soft); }
-.permissions.leaving-now span, .permissions.leaving-now strong { color: #126d46; }
-.permissions.leaving-closed { border-left-color: #8a94a4; background: #f0f2f5; }
-.permissions.leaving-closed span, .permissions.leaving-closed strong { color: #697382; }
 
 .notice-bar { margin-top: 18px; padding: 15px 18px; display: flex; align-items: center; gap: 13px; border-radius: 8px; background: var(--navy-2); color: white; }
 .notice-bar p { margin: 0; font-size: .86rem; }
@@ -146,10 +137,11 @@ input, select { width: 100%; min-height: 42px; border: 1px solid #bfc8d5; border
 .button-current-time { border-color: var(--navy); background: var(--navy); color: white; white-space: nowrap; }
 .button-current-time:hover { background: var(--navy-2); }
 .save-status { color: var(--muted); font-size: .72rem; font-weight: 500; }
-.exam-list-controls { margin: 20px 0 8px; padding: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.exam-list-controls strong, .exam-list-controls span { display: block; }
-.exam-list-controls strong { font-size: .88rem; }
-.exam-list-controls span { margin-top: 2px; color: var(--muted); font-size: .74rem; }
+.exam-list-heading { margin: 20px 0 8px; padding: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.exam-list-heading strong { font-size: .88rem; }
+.exam-list-heading span { color: var(--muted); font-size: .74rem; }
+.exam-list-controls { margin: 8px 0 22px; display: flex; justify-content: center; }
+.exam-list-controls .button-add { width: 100%; }
 .button-add { min-height: 38px; border-color: var(--navy); background: white; color: var(--navy); }
 .button-add:hover { background: #edf3fa; }
 .button-add:disabled { border-color: var(--line); color: #929baa; background: #f3f5f7; cursor: not-allowed; }
@@ -165,6 +157,10 @@ input, select { width: 100%; min-height: 42px; border: 1px solid #bfc8d5; border
 .preset-source, .field-note { margin: -4px 0 2px; color: var(--muted); font-size: .72rem; line-height: 1.4; }
 .preset-source a { color: #245f9d; }
 .field-note { padding: 8px 10px; border-radius: 5px; background: var(--blue-soft); color: #315f8f; }
+.leaving-preview { padding: 11px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-left: 4px solid var(--green); border-radius: 5px; background: var(--green-soft); }
+.leaving-preview span { color: #38604e; font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.leaving-preview strong { color: #126d46; font-size: 1.05rem; font-variant-numeric: tabular-nums; text-align: right; }
+.leaving-preview strong.invalid-window { color: var(--red); }
 .custom-preset-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
 .save-custom, .delete-custom { min-height: 34px; border: 1px solid #aeb9c8; border-radius: 5px; padding: 0 10px; background: white; color: var(--navy); font-size: .74rem; font-weight: 700; }
 .save-custom:hover { background: #edf3fa; }
@@ -182,7 +178,7 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .exam-grid { grid-template-columns: 1fr; }
   .exam-card { display: grid; grid-template-columns: minmax(190px, .8fr) 1fr 1.2fr; }
   .exam-header { border: 0; }.phase { display: grid; align-content: center; }.timeline { padding-top: 13px; }
-  .permissions, .aara { grid-column: 1 / -1; }
+  .aara { grid-column: 1 / -1; }
 }
 
 @media (max-width: 620px) {
@@ -191,7 +187,9 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .room-status, .notice-bar { align-items: flex-start; flex-direction: column; }
   .next-event { text-align: left; }.legend { margin-left: 0; justify-content: flex-start; }
   .exam-card { display: block; }.editor-grid { grid-template-columns: 1fr; }.editor-grid .wide { grid-column: auto; }
-  .timeline-row strong, .permissions strong { font-size: 1.35rem; }
+  .timeline-row strong { font-size: 1.35rem; }
+  .leaving-preview { align-items: flex-start; flex-direction: column; }
+  .leaving-preview strong { text-align: left; }
 }
 
 @media (min-width: 921px) {
@@ -207,7 +205,7 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   :fullscreen .room-status { min-height: 60px; margin: 0; padding: 9px 16px; }
   :fullscreen .room-status h2 { font-size: 1.45rem; }
   :fullscreen .exam-grid { min-height: 0; gap: 14px; }
-  :fullscreen .exam-card { min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; }
+  :fullscreen .exam-card { min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; }
   :fullscreen .exam-header { min-height: 82px; padding: 11px 16px; }
   :fullscreen .exam-header h3 { margin: 4px 0; font-size: clamp(1.12rem, 1.6vw, 1.5rem); }
   :fullscreen .phase { padding: 10px 16px 9px; }
@@ -217,7 +215,6 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   :fullscreen .timeline-row { min-height: 0; }
   :fullscreen .timeline-row span { font-size: clamp(.8rem, 1vw, 1rem); }
   :fullscreen .timeline-row strong { font-size: clamp(1.15rem, 1.65vw, 1.65rem); }
-  :fullscreen .permissions { margin: 5px 16px 7px; padding: 7px 10px; }
   :fullscreen .aara { margin: 0 16px 9px; padding: 7px 10px; }
   :fullscreen .aara strong { display: inline; margin-left: 6px; }
   :fullscreen .notice-bar { min-height: 48px; margin: 0; padding: 8px 14px; }

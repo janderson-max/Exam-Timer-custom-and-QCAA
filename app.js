@@ -157,8 +157,6 @@ function renderCards() {
     const finish = workingStart + exam.working;
     const warning = Math.max(workingStart, finish - 10);
     const extra = Math.round((exam.working / 30) * exam.aara);
-    const times = examTimes(exam, start);
-    const hasLeavingWindow = times.leavingStartMs <= times.leavingEndMs;
     return `
       <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}" data-exam-index="${index}">
         <header class="exam-header">
@@ -176,12 +174,6 @@ function renderCards() {
           <div class="timeline-row"><span>Working starts</span><strong>${timeFromMinutes(start, workingStart)}</strong></div>
           <div class="timeline-row warning"><span>10-minute warning</span><strong>${timeFromMinutes(start, warning)}</strong></div>
           <div class="timeline-row finish"><span>Working finishes</span><strong>${timeFromMinutes(start, finish)}</strong></div>
-        </div>
-        <div class="permissions">
-          <span>PERMITTED LEAVING WINDOW</span>
-          ${hasLeavingWindow
-            ? `<strong>${formatClock(new Date(times.leavingStartMs))} <i>to</i> ${formatClock(new Date(times.leavingEndMs))}</strong>`
-            : `<strong class="invalid-window">No valid window</strong>`}
         </div>
         ${exam.aara ? `<div class="aara">AARA +${exam.aara}/30 finish <strong>${timeFromMinutes(start, finish + extra)}</strong></div>` : ""}
       </article>`;
@@ -207,8 +199,6 @@ function updateSessionState(now = new Date()) {
     const label = card.querySelector(".phase-label");
     const countdown = card.querySelector(".countdown");
     const caption = card.querySelector(".countdown-caption");
-    const permissions = card.querySelector(".permissions");
-    const permissionLabel = permissions.querySelector("span");
     const times = examTimes(exam);
     let remaining = 0;
     let phaseName = "FINISHED";
@@ -251,16 +241,6 @@ function updateSessionState(now = new Date()) {
     countdown.textContent = formatRemaining(remaining);
     caption.textContent = phaseCaption;
 
-    permissions.classList.toggle("leaving-now", nowMs >= times.leavingStartMs && nowMs <= times.leavingEndMs);
-    permissions.classList.toggle("leaving-closed", nowMs > times.leavingEndMs);
-    permissionLabel.textContent = nowMs >= times.leavingStartMs && nowMs <= times.leavingEndMs
-      ? "LEAVING PERMITTED NOW"
-      : nowMs > times.leavingEndMs
-        ? "LEAVING WINDOW CLOSED"
-        : "PERMITTED LEAVING WINDOW";
-
-    if (nowMs < times.leavingStartMs) upcomingEvents.push({ time: times.leavingStartMs, label: `${exam.name} leaving window opens` });
-    else if (nowMs <= times.leavingEndMs) upcomingEvents.push({ time: times.leavingEndMs, label: `${exam.name} leaving window closes` });
   });
 
   document.querySelector("#roomHeading").textContent = hasWorking
@@ -302,7 +282,11 @@ function leavingControls(exam, index) {
           <option value="12:30" ${exam.eaScheduledStart === "12:30" ? "selected" : ""}>Afternoon — 12:30 pm</option>
         </select>
       </label>
-      <p class="field-note wide">Leaving is blocked until 40 minutes after the scheduled start and during the final 10 minutes.</p>`;
+      <p class="field-note wide">Leaving is blocked until 40 minutes after the scheduled start and during the final 10 minutes.</p>
+      <div class="leaving-preview wide">
+        <span>Calculated permitted leaving window</span>
+        <strong id="leavingPreview-${index}">Calculating…</strong>
+      </div>`;
   }
 
   return `
@@ -314,7 +298,11 @@ function leavingControls(exam, index) {
     </label>
     <span></span>
     <label>Cannot leave for first (session min)<input name="leaveAfterStart-${index}" type="number" min="0" max="600" value="${exam.leaveAfterStart ?? ""}" required /></label>
-    <label>Cannot leave during final (min)<input name="noLeaveBeforeEnd-${index}" type="number" min="0" max="600" value="${exam.noLeaveBeforeEnd ?? ""}" required /></label>`;
+    <label>Cannot leave during final (min)<input name="noLeaveBeforeEnd-${index}" type="number" min="0" max="600" value="${exam.noLeaveBeforeEnd ?? ""}" required /></label>
+    <div class="leaving-preview wide">
+      <span>Calculated permitted leaving window</span>
+      <strong id="leavingPreview-${index}">Calculating…</strong>
+    </div>`;
 }
 
 function sourceNote(exam) {
@@ -370,6 +358,31 @@ function renderEditors() {
 
   document.querySelector("#examCount").textContent = `${exams.length} of 3`;
   document.querySelector("#addExamButton").disabled = exams.length >= 3;
+  updateLeavingPreviews();
+}
+
+function updateLeavingPreviews() {
+  const draft = readEditorDraft();
+  draft.forEach((exam, index) => {
+    const preview = document.querySelector(`#leavingPreview-${index}`);
+    if (!preview) return;
+    const complete = [exam.perusal, exam.working, exam.leaveAfterStart, exam.noLeaveBeforeEnd].every(Number.isFinite);
+    if (!complete) {
+      preview.textContent = "Complete the timing fields";
+      preview.classList.add("invalid-window");
+      return;
+    }
+
+    const times = examTimes(exam);
+    if (times.leavingStartMs > times.leavingEndMs) {
+      preview.textContent = "No valid leaving window";
+      preview.classList.add("invalid-window");
+      return;
+    }
+
+    preview.textContent = `${formatClock(new Date(times.leavingStartMs))} to ${formatClock(new Date(times.leavingEndMs))}`;
+    preview.classList.remove("invalid-window");
+  });
 }
 
 function nullableNumber(name, fallback) {
@@ -543,18 +556,24 @@ editors.addEventListener("change", event => {
     }
     exams = nextExams;
     renderEditors();
+    return;
   }
+
+  updateLeavingPreviews();
 });
+editors.addEventListener("input", updateLeavingPreviews);
 document.querySelector("#currentTimeButton").addEventListener("click", () => {
   const now = new Date();
   sessionDate = dateKey(now);
   document.querySelector("#sessionStart").value = inputTime(now);
   persistSession("Current browser time saved as the session start.");
   renderCards();
+  updateLeavingPreviews();
 });
 document.querySelector("#sessionStart").addEventListener("input", () => {
   sessionDate = dateKey(new Date());
   document.querySelector("#sessionSaveStatus").textContent = "Apply the session to save this start time.";
+  updateLeavingPreviews();
 });
 scrim.addEventListener("click", closePanel);
 document.addEventListener("keydown", event => { if (event.key === "Escape" && panel.classList.contains("open")) closePanel(); });
