@@ -378,6 +378,9 @@ function renderCards() {
       </article>`;
   }).join("");
 
+  document.querySelector("#examCountStatus").textContent = `${exams.length} of 3 exam${exams.length === 1 ? "" : "s"}`;
+  document.querySelector("#addExamFromDisplay").disabled = exams.length >= 3;
+
   const first = exams[0];
   document.querySelector("#nextEvent").textContent = `10-minute warning at ${formatExamTime(new Date(examTimes(first, start).warningMs))}`;
   updateSessionState();
@@ -903,7 +906,24 @@ function populateExamEdit(index) {
       : "This exam's timer is already running. Saving recalculates its times from when it actually started, not from the scheduled session start.";
   }
 
+  document.querySelector("#removeExamFromEdit").disabled = exams.length <= 1;
   refreshExamEditReset();
+}
+
+function addExam() {
+  if (exams.length >= 3) return;
+  exams = [...exams, normalizeExam(newExam(exams.length))];
+  persistSession("Exam added and saved on this browser.");
+  renderEditors();
+  renderCards();
+}
+
+function removeExam(index) {
+  if (exams.length <= 1 || !exams[index]) return;
+  exams = exams.filter((_, position) => position !== index);
+  persistSession("Exam removed and saved on this browser.");
+  renderEditors();
+  renderCards();
 }
 
 function openExamEdit(index) {
@@ -1113,6 +1133,12 @@ document.querySelector("#resetExamEdit").addEventListener("click", () => {
 });
 examEditForm.addEventListener("input", refreshExamEditReset);
 examEditForm.addEventListener("change", refreshExamEditReset);
+
+document.querySelector("#addExamFromDisplay").addEventListener("click", addExam);
+document.querySelector("#removeExamFromEdit").addEventListener("click", () => {
+  removeExam(editingExamIndex);
+  examEditDialog.close();
+});
 
 document.querySelector("#closeExamEdit").addEventListener("click", () => examEditDialog.close());
 document.querySelector("#cancelExamEdit").addEventListener("click", () => examEditDialog.close());

@@ -18,6 +18,35 @@
         <span id="date">Friday 4 September</span>
         <strong id="clock">9:05:00 AM</strong>
       </div>
+      <div class="session-start" id="sessionStartControl">
+        <label class="session-start-label" for="startTimeChoice">Session start</label>
+        <div class="session-start-row">
+          <select id="startTimeChoice" aria-label="Choose a session start-time preset">
+            <optgroup label="QCAA EA scheduled sessions">
+              <option value="09:00:00">Morning session — 9:00 am</option>
+              <option value="12:30:00">Afternoon session — 12:30 pm</option>
+            </optgroup>
+            <optgroup label="School period start + 5 minutes">
+              <option value="08:40:00">Period 1 — 8:40 am</option>
+              <option value="09:35:00">Period 2 — 9:35 am</option>
+              <option value="11:10:00">Period 3 — 11:10 am</option>
+              <option value="12:05:00">Period 4 — 12:05 pm</option>
+              <option value="13:40:00">Period 5 — 1:40 pm</option>
+              <option value="14:30:00">Period 6 — 2:30 pm</option>
+            </optgroup>
+            <option value="manual">Manual time entered below</option>
+          </select>
+          <div class="fixed-start-summary" id="fixedStartSummary">
+            <span>Starts</span>
+            <strong id="fixedStartValue">9:00:00 AM</strong>
+          </div>
+          <span class="time-input-row" id="manualTimeControls" hidden>
+            <input id="sessionStart" type="time" value="09:00:00" step="1" required />
+            <button class="button button-current-time" id="currentTimeButton" type="button">Use current time</button>
+          </span>
+        </div>
+        <small class="save-status" id="sessionSaveStatus">Saved on this browser when the session is applied.</small>
+      </div>
       <div class="header-actions">
         <button class="button button-secondary" id="fullscreenButton" type="button">Full screen</button>
         <button class="button button-primary" id="setupButton" type="button">Setup exams</button>
@@ -37,6 +66,11 @@
       </section>
 
       <section class="exam-grid" id="examGrid" aria-label="Active exams"></section>
+
+      <div class="exam-count-bar">
+        <button class="button button-add" id="addExamFromDisplay" type="button">+ Add another exam</button>
+        <span class="exam-count-status" id="examCountStatus">3 of 3 exams</span>
+      </div>
 
       <section class="notice-bar">
         <span class="notice-icon" aria-hidden="true">i</span>
@@ -61,32 +95,6 @@
       <p class="panel-note">Draft application: verify the selected assessment conditions and current QCAA directions before administering an exam.</p>
 
       <form id="setupForm">
-        <label>Session start
-          <select id="startTimeChoice" aria-label="Choose a session start-time preset">
-            <optgroup label="QCAA EA scheduled sessions">
-              <option value="09:00:00">Morning session — 9:00 am</option>
-              <option value="12:30:00">Afternoon session — 12:30 pm</option>
-            </optgroup>
-            <optgroup label="School period start + 5 minutes">
-              <option value="08:40:00">Period 1 — 8:40 am</option>
-              <option value="09:35:00">Period 2 — 9:35 am</option>
-              <option value="11:10:00">Period 3 — 11:10 am</option>
-              <option value="12:05:00">Period 4 — 12:05 pm</option>
-              <option value="13:40:00">Period 5 — 1:40 pm</option>
-              <option value="14:30:00">Period 6 — 2:30 pm</option>
-            </optgroup>
-            <option value="manual">Manual time entered below</option>
-          </select>
-          <div class="fixed-start-summary" id="fixedStartSummary">
-            <span>Exam session starts</span>
-            <strong id="fixedStartValue">9:00:00 AM</strong>
-          </div>
-          <span class="time-input-row" id="manualTimeControls" hidden>
-            <input id="sessionStart" type="time" value="09:00:00" step="1" required />
-            <button class="button button-current-time" id="currentTimeButton" type="button">Use current time</button>
-          </span>
-          <small class="save-status" id="sessionSaveStatus">Saved on this browser when the session is applied.</small>
-        </label>
         <label class="checkbox-row" for="hideTimerSeconds">
           <input id="hideTimerSeconds" name="hideTimerSeconds" type="checkbox" />
           Hide seconds on exam timers (keep the main clock showing seconds)
@@ -216,6 +224,7 @@
         <p class="edit-note">The permitted leaving window is supervisor information and is not shown on the room display. Session start time stays in <strong>Setup exams</strong>.</p>
         <div class="dialog-actions edit-actions">
           <button class="button button-secondary" id="resetExamEdit" type="button">Reset changes</button>
+          <button class="button button-danger" id="removeExamFromEdit" type="button">Remove exam</button>
           <span class="edit-actions-gap"></span>
           <button class="button button-secondary" id="cancelExamEdit" type="button">Cancel</button>
           <button class="button button-primary" type="submit">Save changes</button>

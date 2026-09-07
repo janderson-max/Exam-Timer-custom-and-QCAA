@@ -183,4 +183,35 @@ assert.deepEqual(JSON.parse(fia.read('JSON.stringify(presetOverrides)')), {}, 's
 fia.read('applyPresetChoice("qcaa-biology-ea-p1")');
 assert.equal(fia.el('#editWorking').value, '90', 'the EA paper still comes straight from the syllabus');
 
+// --- changing the number of exams from the display ------------------------
+// With session setup moving out of the panel, these are the only controls for it.
+const count = boot();
+const cardCount = () => (count.rendered['#examGrid'] || '').split('data-exam-index=').length - 1;
+
+assert.equal(cardCount(), 3, 'the sample session starts with three exams');
+assert.equal(count.el('#addExamFromDisplay').disabled, true, 'adding is refused at three');
+
+count.read('addExam()');
+assert.equal(cardCount(), 3, 'a fourth exam cannot be added');
+
+count.read('removeExam(2)');
+assert.equal(cardCount(), 2, 'an exam can be removed from the display');
+assert.equal(count.el('#examCountStatus').textContent, '2 of 3 exams', 'the readout follows the count');
+assert.equal(count.el('#addExamFromDisplay').disabled, false, 'adding is available again below three');
+
+count.read('removeExam(1)');
+assert.equal(count.el('#examCountStatus').textContent, '1 of 3 exam', 'the readout reads singular for one exam');
+
+// The room display always needs at least one exam.
+count.read('removeExam(0)');
+assert.equal(cardCount(), 1, 'the last exam cannot be removed');
+
+count.read('addExam()');
+assert.equal(cardCount(), 2, 'exams can be added back');
+assert.equal(
+  JSON.parse(count.read('localStorage.getItem("exam-room-timer-session-v1")')).exams.length,
+  2,
+  'the new exam count is saved on this browser',
+);
+
 console.log('All quick-edit checks passed.');
