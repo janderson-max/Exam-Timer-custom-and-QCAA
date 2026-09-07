@@ -273,7 +273,7 @@ function renderCards() {
     const selectedAaraRates = aaraRates(exam);
     const isPaused = Boolean(exam.runtime?.pausedAt);
     return `
-      <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}" data-exam-index="${index}">
+      <article class="exam-card colour-${exam.colour}" data-exam-index="${index}">
         <header class="exam-header">
           <button class="exam-clock-button ${isPaused ? "is-paused" : ""}" type="button" data-exam-clock="${index}" aria-label="${isPaused ? "Open controls for paused" : "Pause and control"} ${escapeHtml(exam.name)}" title="${isPaused ? "Timer paused — open controls" : "Pause timer and open controls"}">
             ${isPaused ? PAUSE_ICON : CLOCK_ICON}

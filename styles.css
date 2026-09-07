@@ -79,7 +79,6 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 
 .exam-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .exam-card { --subject: #286aa6; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-top: 6px solid var(--subject); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
-.exam-card.current { box-shadow: 0 0 0 2px var(--subject), var(--shadow); }
 .colour-blue { --subject: #276aa5; }
 .colour-purple { --subject: #7553a6; }
 .colour-teal { --subject: #147e79; }
