@@ -124,4 +124,74 @@ const legacyPref = boot({
 });
 assert.equal(legacyPref.read('hideTimerSeconds'), true, 'the preference is picked up from the old session blob');
 
+// --- quick edit rebases a running timer -----------------------------------
+// Once a timer is running its end times live in exam.runtime, which createExamTimeline
+// prefers over the scheduled times. Without a rebase, editing the working time of a
+// running exam would appear to save and change nothing.
+const MIN = 60_000;
+const STARTED = new Date(2026, 9, 26, 9, 0, 0).getTime();
+const edit = boot();
+
+const workingCase = edit.read(`(() => {
+  exams[0] = normalizeExam({ ...exams[0], perusal: 5, working: 90 });
+  exams[0].runtime = makeRuntime(exams[0], ${STARTED}, ${STARTED + 5 * MIN}, "working");
+  const previous = exams[0].runtime;
+  exams[0] = normalizeExam({ ...exams[0], working: 100 });
+  rebaseRuntime(exams[0], previous);
+  return [exams[0].runtime.workingStartMs, exams[0].runtime.finishMs].join(',');
+})()`);
+assert.equal(
+  workingCase,
+  [STARTED + 5 * MIN, STARTED + 5 * MIN + 100 * MIN].join(','),
+  'a longer working time extends the finish from when working actually began',
+);
+
+const perusalCase = edit.read(`(() => {
+  exams[1] = normalizeExam({ ...exams[1], perusal: 5, working: 90 });
+  exams[1].runtime = makeRuntime(exams[1], ${STARTED}, ${STARTED + 5 * MIN}, "perusal");
+  const previous = exams[1].runtime;
+  exams[1] = normalizeExam({ ...exams[1], perusal: 15 });
+  rebaseRuntime(exams[1], previous);
+  return [exams[1].runtime.workingStartMs, exams[1].runtime.finishMs].join(',');
+})()`);
+assert.equal(
+  perusalCase,
+  [STARTED + 15 * MIN, STARTED + 15 * MIN + 90 * MIN].join(','),
+  'during perusal, a longer perusal pushes working start and finish out from the real start',
+);
+
+// Adding an AARA group to a running exam must produce a finish time for it.
+const aaraCase = edit.read(`(() => {
+  exams[2] = normalizeExam({ ...exams[2], perusal: 0, working: 90, aaraOptions: [] });
+  exams[2].runtime = makeRuntime(exams[2], ${STARTED}, ${STARTED}, "working");
+  const previous = exams[2].runtime;
+  exams[2] = normalizeExam({ ...exams[2], aaraOptions: [10] });
+  rebaseRuntime(exams[2], previous);
+  return String(exams[2].runtime.aaraFinishByRate[10]);
+})()`);
+assert.equal(
+  aaraCase,
+  String(STARTED + 90 * MIN + 30 * MIN),
+  'a newly ticked AARA group gets a finish time based on the running exam',
+);
+
+// A paused exam stays paused across an edit, and an exam that has not started keeps
+// following the scheduled session start.
+const pausedCase = edit.read(`(() => {
+  exams[0].runtime = makeRuntime(exams[0], ${STARTED}, ${STARTED}, "working");
+  exams[0].runtime.pausedAt = ${STARTED + 10 * MIN};
+  const previous = exams[0].runtime;
+  exams[0] = normalizeExam({ ...exams[0], working: 45 });
+  rebaseRuntime(exams[0], previous);
+  return [exams[0].runtime.pausedAt, exams[0].runtime.startedPhase].join(',');
+})()`);
+assert.equal(pausedCase, [STARTED + 10 * MIN, 'working'].join(','), 'an edit keeps a paused exam paused');
+
+const notStarted = edit.read(`(() => {
+  delete exams[0].runtime;
+  rebaseRuntime(exams[0], undefined);
+  return String(exams[0].runtime);
+})()`);
+assert.equal(notStarted, 'undefined', 'editing an exam that has not started creates no runtime override');
+
 console.log('All session restore checks passed.');

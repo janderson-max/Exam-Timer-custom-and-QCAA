@@ -9,6 +9,7 @@ const CUSTOM_PRESETS_KEY = "exam-room-timer-custom-presets-v1";
 const SESSION_STORAGE_VERSION = 1;
 const DISPLAY_PREFS_KEY = "exam-room-timer-display-v1";
 const CLOCK_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5.6V12l4.5 2.7" /><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" /></svg>`;
+const EDIT_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.7 6.3l3 3M5 19h3l9.4-9.4a1.6 1.6 0 0 0 0-2.2l-.8-.8a1.6 1.6 0 0 0-2.2 0L5 16z" /></svg>`;
 const PAUSE_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><rect x="8.4" y="7.2" width="2.6" height="9.6" rx="1" /><rect x="13" y="7.2" width="2.6" height="9.6" rx="1" /></svg>`;
 let exams = structuredClone(SAMPLE_EXAMS);
 let customPresets = loadCustomPresets();
@@ -22,7 +23,10 @@ const scrim = document.querySelector("#scrim");
 const form = document.querySelector("#setupForm");
 const resetDialog = document.querySelector("#resetDialog");
 const examControlDialog = document.querySelector("#examControlDialog");
+const examEditDialog = document.querySelector("#examEditDialog");
+const examEditForm = document.querySelector("#examEditForm");
 let selectedExamIndex = 0;
+let editingExamIndex = 0;
 
 function formatClock(date) {
   return new Intl.DateTimeFormat("en-AU", {
@@ -245,6 +249,24 @@ function startWorking(index, at = Date.now()) {
   exam.runtime = makeRuntime(exam, perusalStartedAt, at, "working");
 }
 
+function rebaseRuntime(exam, previous) {
+  if (!previous) return;
+  const sessionStartMs = Number(previous.sessionStartMs);
+  if (!Number.isFinite(sessionStartMs)) {
+    delete exam.runtime;
+    return;
+  }
+  const startedWorking = previous.startedPhase === "working";
+  const previousWorkingStartMs = Number(previous.workingStartMs);
+  const workingStartMs = startedWorking && Number.isFinite(previousWorkingStartMs)
+    ? previousWorkingStartMs
+    : sessionStartMs + exam.perusal * 60_000;
+  exam.runtime = {
+    ...makeRuntime(exam, sessionStartMs, workingStartMs, previous.startedPhase),
+    pausedAt: previous.pausedAt ?? null,
+  };
+}
+
 function clearRuntimeOverrides() {
   exams.forEach(exam => delete exam.runtime);
 }
@@ -275,9 +297,14 @@ function renderCards() {
     return `
       <article class="exam-card colour-${exam.colour}" data-exam-index="${index}">
         <header class="exam-header">
-          <button class="exam-clock-button ${isPaused ? "is-paused" : ""}" type="button" data-exam-clock="${index}" aria-label="${isPaused ? "Open controls for paused" : "Pause and control"} ${escapeHtml(exam.name)}" title="${isPaused ? "Timer paused — open controls" : "Pause timer and open controls"}">
-            ${isPaused ? PAUSE_ICON : CLOCK_ICON}
-          </button>
+          <div class="exam-header-actions">
+            <button class="exam-edit-button" type="button" data-exam-edit="${index}" aria-label="Edit details for ${escapeHtml(exam.name)}" title="Edit exam details">
+              ${EDIT_ICON}
+            </button>
+            <button class="exam-clock-button ${isPaused ? "is-paused" : ""}" type="button" data-exam-clock="${index}" aria-label="${isPaused ? "Open controls for paused" : "Pause and control"} ${escapeHtml(exam.name)}" title="${isPaused ? "Timer paused — open controls" : "Pause timer and open controls"}">
+              ${isPaused ? PAUSE_ICON : CLOCK_ICON}
+            </button>
+          </div>
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}</span>
           <h3>${escapeHtml(exam.name)}</h3>
           <p>${exam.perusal ? `${exam.perusal} min perusal / planning` : "No perusal / planning"} · ${durationLabel(exam.working)} working</p>
@@ -581,6 +608,38 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 }
 
+function openExamEdit(index) {
+  const exam = exams[index];
+  if (!exam) return;
+  editingExamIndex = index;
+
+  document.querySelector("#examEditTitle").textContent = `Exam ${index + 1} · ${exam.name}`;
+  document.querySelector("#editName").value = exam.name;
+  document.querySelector("#editType").value = ["Custom", "FIA", "IA", "EA"].includes(exam.type) ? exam.type : "Custom";
+  document.querySelector("#editPerusal").value = exam.perusal;
+  document.querySelector("#editWorking").value = exam.working;
+  document.querySelector("#editColour").innerHTML = EXAM_COLOURS
+    .map(colour => `<option value="${colour}" ${colour === exam.colour ? "selected" : ""}>${colour[0].toUpperCase() + colour.slice(1)}</option>`)
+    .join("");
+  const rates = aaraRates(exam);
+  examEditForm.querySelectorAll('input[name="editAara"]').forEach(input => {
+    input.checked = rates.includes(Number(input.value));
+  });
+
+  // A running timer keeps its own start times, so say what a change will actually do.
+  const note = document.querySelector("#examEditRunningNote");
+  const runtime = exam.runtime;
+  note.hidden = !runtime;
+  if (runtime) {
+    note.textContent = runtime.startedPhase === "working"
+      ? "This exam is under way. Working time is measured from when it actually started, so saving a new working time will move the finish time."
+      : "This exam's timer is already running. Saving recalculates its times from when it actually started, not from the scheduled session start.";
+  }
+
+  examEditDialog.showModal();
+  document.querySelector("#editName").focus();
+}
+
 function openPanel() {
   panel.classList.add("open");
   panel.setAttribute("aria-hidden", "false");
@@ -595,6 +654,12 @@ function closePanel() {
 }
 
 examGrid.addEventListener("click", event => {
+  const editButton = event.target.closest("[data-exam-edit]");
+  if (editButton) {
+    openExamEdit(Number(editButton.dataset.examEdit));
+    return;
+  }
+
   const clockButton = event.target.closest("[data-exam-clock]");
   if (!clockButton) return;
   selectedExamIndex = Number(clockButton.dataset.examClock);
@@ -656,6 +721,46 @@ form.addEventListener("submit", event => {
   persistSession();
   renderCards();
   closePanel();
+});
+
+document.querySelector("#closeExamEdit").addEventListener("click", () => examEditDialog.close());
+document.querySelector("#cancelExamEdit").addEventListener("click", () => examEditDialog.close());
+examEditForm.addEventListener("submit", event => {
+  event.preventDefault();
+  const exam = exams[editingExamIndex];
+  if (!exam) return;
+
+  const draft = normalizeExam({
+    ...exam,
+    name: document.querySelector("#editName").value,
+    type: document.querySelector("#editType").value,
+    perusal: Number(document.querySelector("#editPerusal").value),
+    working: Number(document.querySelector("#editWorking").value),
+    aaraOptions: [...examEditForm.querySelectorAll('input[name="editAara"]:checked')].map(input => Number(input.value)),
+    colour: document.querySelector("#editColour").value,
+  });
+
+  const problem = examProblem(draft);
+  if (problem) {
+    const field = { name: "#editName", perusal: "#editPerusal", working: "#editWorking" }[problem.field];
+    const input = field && document.querySelector(field);
+    if (input) {
+      const clear = () => input.setCustomValidity("");
+      input.setCustomValidity(problem.message);
+      input.reportValidity();
+      input.addEventListener("input", clear, { once: true });
+    }
+    return;
+  }
+
+  const previousRuntime = exam.runtime;
+  exams[editingExamIndex] = draft;
+  rebaseRuntime(draft, previousRuntime);
+
+  persistSession("Exam details updated and saved on this browser.");
+  renderEditors();
+  renderCards();
+  examEditDialog.close();
 });
 
 document.querySelector("#setupButton").addEventListener("click", openPanel);

@@ -91,12 +91,15 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
   justify-content: flex-start;
   gap: 2px;
   min-height: 126px;
-  padding: 16px 68px 6px 20px;
+  padding: 16px 112px 6px 20px;
   border-bottom: 0;
   background: var(--subject);
   color: white;
 }
-.exam-clock-button { position: absolute; top: 12px; right: 12px; width: 42px; height: 42px; padding: 0; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.65); border-radius: 50%; background: rgba(255,255,255,.14); color: white; line-height: 0; }
+.exam-header-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; }
+.exam-clock-button, .exam-edit-button { width: 42px; height: 42px; padding: 0; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.65); border-radius: 50%; background: rgba(255,255,255,.14); color: white; line-height: 0; }
+.exam-edit-button { border-color: rgba(255,255,255,.45); background: rgba(255,255,255,.08); }
+.exam-edit-button:hover, .exam-edit-button:focus-visible { background: rgba(255,255,255,.26); outline: 3px solid rgba(255,255,255,.35); outline-offset: 2px; }
 .exam-clock-icon { display: block; width: 100%; height: 100%; }
 .exam-clock-button:hover, .exam-clock-button:focus-visible { background: rgba(255,255,255,.28); outline: 3px solid rgba(255,255,255,.35); outline-offset: 2px; }
 .exam-clock-button.is-paused { border-color: #ffe1a0; background: #fff4d6; color: #7a5200; }
@@ -213,6 +216,12 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
 .exam-control-dialog { width: min(620px, calc(100% - 28px)); max-width: 620px; }
 .dialog-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .dialog-title-row h2 { margin: 4px 0 0; padding-right: 8px; }
+.exam-edit-dialog { width: min(560px, calc(100% - 28px)); max-width: 560px; }
+.edit-grid { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.edit-grid > label { display: grid; gap: 5px; margin: 0 0 14px; font-size: .8rem; font-weight: 700; }
+.edit-grid .wide { grid-column: 1 / -1; }
+.edit-running-note { margin: 16px 0 0; padding: 11px 13px; border-left: 4px solid var(--amber); border-radius: 5px; background: var(--amber-soft); color: #684b13; font-size: .84rem; line-height: 1.45; }
+.edit-note { margin: 2px 0 0; color: var(--muted); font-size: .78rem; }
 .control-status { margin: 18px 0 8px; padding: 11px 13px; border-left: 4px solid var(--amber); border-radius: 5px; background: var(--amber-soft); color: #684b13; font-weight: 750; }
 .control-warning { margin: 0 0 17px; color: var(--muted); font-size: .82rem; line-height: 1.45; }
 .control-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -263,8 +272,9 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   :fullscreen .room-status h2 { font-size: 1.45rem; }
   :fullscreen .exam-grid { min-height: 0; gap: 14px; }
   :fullscreen .exam-card { min-height: 0; display: flex; flex-direction: column; }
-  :fullscreen .exam-header { min-height: 108px; padding: 10px 58px 8px 16px; }
-  :fullscreen .exam-clock-button { top: 9px; right: 9px; width: 38px; height: 38px; }
+  :fullscreen .exam-header { min-height: 108px; padding: 10px 98px 8px 16px; }
+  :fullscreen .exam-header-actions { top: 9px; right: 9px; gap: 6px; }
+  :fullscreen .exam-clock-button, :fullscreen .exam-edit-button { width: 38px; height: 38px; }
   :fullscreen .exam-header h3 { margin: 0; min-height: 2.1em; font-size: clamp(1.12rem, 1.6vw, 1.5rem); line-height: 1.1; }
   :fullscreen .phase { min-height: 118px; padding: 8px 16px 10px; }
   :fullscreen .phase strong { margin-top: 4px; font-size: clamp(2.5rem, 4.4vw, 4.6rem); }

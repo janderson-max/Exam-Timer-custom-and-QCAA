@@ -151,6 +151,43 @@
       </div>
     </dialog>
 
+    <dialog class="exam-edit-dialog" id="examEditDialog">
+      <form id="examEditForm">
+        <div class="dialog-title-row">
+          <div>
+            <span class="eyebrow">QUICK EDIT</span>
+            <h2 id="examEditTitle">Edit exam</h2>
+          </div>
+          <button class="icon-button" id="closeExamEdit" type="button" aria-label="Close quick edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5.8 5.8l12.4 12.4M18.2 5.8L5.8 18.2" /></svg></button>
+        </div>
+        <p class="edit-running-note" id="examEditRunningNote" hidden></p>
+        <div class="edit-grid">
+          <label class="wide">Display name<input id="editName" name="editName" required /></label>
+          <label>Category
+            <select id="editType" name="editType">
+              <option>Custom</option>
+              <option>FIA</option>
+              <option>IA</option>
+              <option>EA</option>
+            </select>
+          </label>
+          <label>Subject colour<select id="editColour" name="editColour"></select></label>
+          <label>Perusal / planning (min)<input id="editPerusal" name="editPerusal" type="number" min="0" max="120" required /></label>
+          <label>Working time (min)<input id="editWorking" name="editWorking" type="number" min="1" max="600" required /></label>
+          <fieldset class="aara-picker wide">
+            <legend>AARA extra-time groups</legend>
+            <label><input name="editAara" type="checkbox" value="5" /> 5 min per 30</label>
+            <label><input name="editAara" type="checkbox" value="10" /> 10 min per 30</label>
+          </fieldset>
+        </div>
+        <p class="edit-note">Leaving rules and start time stay in <strong>Setup exams</strong>.</p>
+        <div class="dialog-actions">
+          <button class="button button-secondary" id="cancelExamEdit" type="button">Cancel</button>
+          <button class="button button-primary" type="submit">Save changes</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="timer-core.js"></script>
     <script src="presets.js"></script>
     <script src="app.js"></script>
