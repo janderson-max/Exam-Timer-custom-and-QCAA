@@ -294,7 +294,7 @@ function renderCards() {
           <div class="timeline-row finish"><span>Working finishes</span><strong>${formatExamTime(new Date(times.finishMs))}</strong></div>
         </div>
         ${selectedAaraRates.length ? `
-          <div class="aara">
+          <div class="aara" style="--aara-count: ${selectedAaraRates.length}">
             <span class="aara-title">AARA finish times</span>
             ${selectedAaraRates.map(rate => {
               return `<span class="aara-time"><b>+${rate}/30</b><strong>${formatExamTime(new Date(times.aaraFinishByRate[rate]))}</strong></span>`;
