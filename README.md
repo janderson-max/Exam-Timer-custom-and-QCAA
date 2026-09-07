@@ -8,11 +8,11 @@ The draft includes distinct subject colours, a configurable per-exam permitted l
 
 Permitted leaving windows are shown only in the supervisor setup panel, not on the student-facing room display.
 
-Supervisors can configure between one and three simultaneous exams. Exams are added from the bar below the room display and removed from an exam's own quick-edit dialog; the last exam cannot be removed.
+Supervisors can configure between one and three simultaneous exams.
 
 Session start time and setup are stored in the browser so they survive an accidental tab or browser closure. Browser storage is local to the device and browser profile in use.
 
-Session start sits in the top bar, next to the clock. Its shortcuts are the QCAA EA morning and afternoon sessions and the supplied school timetable's Periods 1–6, offset five minutes from each period start.
+Start-time shortcuts include the QCAA EA morning and afternoon sessions and the supplied school timetable's Periods 1–6, offset five minutes from each period start.
 
 Fixed start-time choices apply immediately. The editable time field and current-browser-time shortcut are shown only when manual start time is selected.
 
