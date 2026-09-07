@@ -6,6 +6,22 @@
 const EXAM_COLOURS = ["blue", "purple", "teal", "orange", "rose"];
 const VALID_LEAVING_POLICIES = new Set(["teacher", "qcaa-ea-2025"]);
 
+// The school timetable, matching the session-start shortcuts in the setup panel
+// (each is the period start plus five minutes).
+const SCHOOL_PERIODS = [
+  { value: "08:40", label: "Period 1", time: "8:40 am" },
+  { value: "09:35", label: "Period 2", time: "9:35 am" },
+  { value: "11:10", label: "Period 3", time: "11:10 am" },
+  { value: "12:05", label: "Period 4", time: "12:05 pm" },
+  { value: "13:40", label: "Period 5", time: "1:40 pm" },
+  { value: "14:30", label: "Period 6", time: "2:30 pm" },
+];
+
+function periodLabel(value) {
+  const period = SCHOOL_PERIODS.find(item => item.value === value);
+  return period ? period.label : "";
+}
+
 function aaraRates(exam) {
   if (Array.isArray(exam.aaraOptions)) {
     return [...new Set(exam.aaraOptions.map(Number).filter(rate => rate === 5 || rate === 10))].sort((a, b) => a - b);
@@ -42,6 +58,11 @@ function normalizeExam(exam = {}, fallback = {}) {
     presetId: typeof base.presetId === "string" ? base.presetId : "manual",
     colour: typeof base.colour === "string" ? base.colour : EXAM_COLOURS[0],
     eaScheduledStart: typeof base.eaScheduledStart === "string" ? base.eaScheduledStart : "09:00",
+    // "" means the exam is not tied to a timetabled period, which is the default and
+    // leaves the leaving window measured from when the exam actually starts.
+    scheduledPeriodStart: SCHOOL_PERIODS.some(period => period.value === base.scheduledPeriodStart)
+      ? base.scheduledPeriodStart
+      : "",
   };
 }
 
@@ -127,12 +148,20 @@ function createExamTimeline(exam, start, directions) {
     Number(runtime?.aaraFinishByRate?.[rate]) || calculatedAaraFinishes[rate],
   ]));
   const aaraFinishMs = Math.max(finishMs, ...Object.values(aaraFinishByRate).map(Number));
+  const scheduledClockTime = clock => {
+    const [hour, minute] = clock.split(":").map(Number);
+    const scheduled = new Date(start);
+    scheduled.setHours(hour, minute, 0, 0);
+    return scheduled.getTime();
+  };
+
   let leavingStartMs = startMs + Number(normalizedExam.leaveAfterStart) * 60_000;
   if (normalizedExam.leavingPolicy === "qcaa-ea-2025") {
-    const [scheduledHour, scheduledMinute] = (normalizedExam.eaScheduledStart || "09:00").split(":").map(Number);
-    const scheduledStart = new Date(start);
-    scheduledStart.setHours(scheduledHour, scheduledMinute, 0, 0);
-    leavingStartMs = scheduledStart.getTime() + directions.firstMinutesFromScheduledStart * 60_000;
+    leavingStartMs = scheduledClockTime(normalizedExam.eaScheduledStart || "09:00")
+      + directions.firstMinutesFromScheduledStart * 60_000;
+  } else if (normalizedExam.scheduledPeriodStart) {
+    leavingStartMs = scheduledClockTime(normalizedExam.scheduledPeriodStart)
+      + Number(normalizedExam.leaveAfterStart) * 60_000;
   }
 
   return {
@@ -154,6 +183,8 @@ if (typeof module !== "undefined" && module.exports) {
     aaraRates,
     aaraFinishTimes,
     createExamTimeline,
+    SCHOOL_PERIODS,
+    periodLabel,
     normalizeExam,
     examProblem,
     validateExam,

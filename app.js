@@ -308,7 +308,7 @@ function renderCards() {
               ${EDIT_ICON}
             </button>
           </div>
-          <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}</span>
+          <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}${exam.scheduledPeriodStart ? ` · ${periodLabel(exam.scheduledPeriodStart).toUpperCase()}` : ""}</span>
           <h3>${escapeHtml(exam.name)}</h3>
           <p>${exam.perusal ? `${exam.perusal} min perusal / planning` : "No perusal / planning"} · ${durationLabel(exam.working)} working</p>
         </header>
@@ -478,7 +478,9 @@ function leavingControls(exam, index) {
         <option value="qcaa-ea-2025">QCAA EA June 2025</option>
       </select>
     </label>
-    <span></span>
+    <label>Scheduled period start
+      <select name="scheduledPeriodStart-${index}">${periodOptions(exam.scheduledPeriodStart || "")}</select>
+    </label>
     <label>Cannot leave for first (session min)<input name="leaveAfterStart-${index}" type="number" min="0" max="600" value="${exam.leaveAfterStart ?? ""}" required /></label>
     <label>Cannot leave during final (min)<input name="noLeaveBeforeEnd-${index}" type="number" min="0" max="600" value="${exam.noLeaveBeforeEnd ?? ""}" required /></label>
     <div class="leaving-preview wide">
@@ -591,6 +593,7 @@ function readEditorDraft() {
     noLeaveBeforeEnd: nullableNumber(`noLeaveBeforeEnd-${index}`, exam.noLeaveBeforeEnd),
     leavingPolicy: form.elements.namedItem(`leavingPolicy-${index}`)?.value ?? exam.leavingPolicy ?? "teacher",
     eaScheduledStart: form.elements.namedItem(`eaScheduledStart-${index}`)?.value ?? exam.eaScheduledStart ?? "09:00",
+    scheduledPeriodStart: form.elements.namedItem(`scheduledPeriodStart-${index}`)?.value ?? exam.scheduledPeriodStart ?? "",
     colour: form.elements.namedItem(`colour-${index}`)?.value ?? exam.colour,
   }));
 }
@@ -633,6 +636,7 @@ function examEditSnapshot() {
     leaveAfterStart: fieldText(document.querySelector("#editLeaveAfterStart").value),
     noLeaveBeforeEnd: fieldText(document.querySelector("#editNoLeaveBeforeEnd").value),
     eaScheduledStart: document.querySelector("#editEaScheduledStart").value,
+    scheduledPeriodStart: document.querySelector("#editScheduledPeriodStart").value,
   });
 }
 
@@ -649,6 +653,7 @@ function savedExamSnapshot(exam) {
     leaveAfterStart: fieldText(exam.leaveAfterStart),
     noLeaveBeforeEnd: fieldText(exam.noLeaveBeforeEnd),
     eaScheduledStart: exam.eaScheduledStart || "09:00",
+    scheduledPeriodStart: exam.scheduledPeriodStart || "",
   });
 }
 
@@ -736,6 +741,15 @@ function setComboActive(index) {
 }
 
 // --- leaving rules ---------------------------------------------------------
+function periodOptions(selectedValue) {
+  const chosen = SCHOOL_PERIODS.some(period => period.value === selectedValue) ? selectedValue : "";
+  return [
+    `<option value="" ${chosen === "" ? "selected" : ""}>Not scheduled — measure from actual start</option>`,
+    ...SCHOOL_PERIODS.map(period =>
+      `<option value="${period.value}" ${period.value === chosen ? "selected" : ""}>${period.label} — ${period.time}</option>`),
+  ].join("");
+}
+
 function editFieldNumber(selector) {
   const value = document.querySelector(selector).value;
   return value === "" ? null : Number(value);
@@ -756,6 +770,7 @@ function examEditDraft() {
     leaveAfterStart: editFieldNumber("#editLeaveAfterStart"),
     noLeaveBeforeEnd: editFieldNumber("#editNoLeaveBeforeEnd"),
     eaScheduledStart: document.querySelector("#editEaScheduledStart").value,
+    scheduledPeriodStart: document.querySelector("#editScheduledPeriodStart").value,
   };
 }
 
@@ -784,6 +799,7 @@ function updateEditLeavingPreview() {
 function syncEditLeavingFields() {
   const isQcaa = document.querySelector("#editLeavingPolicy").value === "qcaa-ea-2025";
   document.querySelector("#editEaSessionField").hidden = !isQcaa;
+  document.querySelector("#editPeriodField").hidden = isQcaa;
   document.querySelector("#editEaLeavingNote").hidden = !isQcaa;
   document.querySelector("#editLeaveAfterField").hidden = isQcaa;
   document.querySelector("#editNoLeaveBeforeField").hidden = isQcaa;
@@ -826,6 +842,7 @@ function populateExamEdit(index) {
   document.querySelector("#editLeaveAfterStart").value = fieldText(exam.leaveAfterStart);
   document.querySelector("#editNoLeaveBeforeEnd").value = fieldText(exam.noLeaveBeforeEnd);
   document.querySelector("#editEaScheduledStart").value = exam.eaScheduledStart === "12:30" ? "12:30" : "09:00";
+  document.querySelector("#editScheduledPeriodStart").innerHTML = periodOptions(exam.scheduledPeriodStart || "");
   syncEditLeavingFields();
 
   // A running timer keeps its own start times, so say what a change will actually do.
@@ -969,6 +986,7 @@ function applyPresetChoice(presetId) {
   document.querySelector("#editLeaveAfterStart").value = fieldText(selected.leaveAfterStart);
   document.querySelector("#editNoLeaveBeforeEnd").value = fieldText(selected.noLeaveBeforeEnd);
   document.querySelector("#editEaScheduledStart").value = selected.eaScheduledStart === "12:30" ? "12:30" : "09:00";
+  document.querySelector("#editScheduledPeriodStart").innerHTML = periodOptions(selected.scheduledPeriodStart || "");
 
   document.querySelector("#editPresetSource").innerHTML = editSourceNote(selected);
   syncEditLeavingFields();
@@ -1038,6 +1056,7 @@ document.querySelector("#editLeavingPolicy").addEventListener("change", event =>
 });
 examEditForm.addEventListener("input", updateEditLeavingPreview);
 document.querySelector("#editEaScheduledStart").addEventListener("change", updateEditLeavingPreview);
+document.querySelector("#editScheduledPeriodStart").addEventListener("change", updateEditLeavingPreview);
 
 document.querySelector("#resetExamEdit").addEventListener("click", () => {
   populateExamEdit(editingExamIndex);
