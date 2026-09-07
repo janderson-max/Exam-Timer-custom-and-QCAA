@@ -6,10 +6,13 @@ const SAMPLE_EXAMS = [
 
 const STORAGE_KEY = "exam-room-timer-session-v1";
 const CUSTOM_PRESETS_KEY = "exam-room-timer-custom-presets-v1";
+const SESSION_STORAGE_VERSION = 1;
 const EXAM_COLOURS = ["blue", "purple", "teal", "orange", "rose"];
+const VALID_LEAVING_POLICIES = new Set(["teacher", "qcaa-ea-2025"]);
 let exams = structuredClone(SAMPLE_EXAMS);
 let customPresets = loadCustomPresets();
 let sessionDate = dateKey(new Date());
+let hideTimerSeconds = false;
 
 const examGrid = document.querySelector("#examGrid");
 const editors = document.querySelector("#examEditors");
@@ -23,6 +26,15 @@ let selectedExamIndex = 0;
 function formatClock(date) {
   return new Intl.DateTimeFormat("en-AU", {
     hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true,
+  }).format(date);
+}
+
+function formatExamTime(date) {
+  return new Intl.DateTimeFormat("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: hideTimerSeconds ? undefined : "2-digit",
+    hour12: true,
   }).format(date);
 }
 
@@ -64,10 +76,74 @@ function updateStartTimeControls() {
   if (!isManual) document.querySelector("#fixedStartValue").textContent = formatClock(getBaseDate());
 }
 
+function normalizeExam(exam = {}, fallback = {}) {
+  const base = { ...fallback, ...(exam ?? {}) };
+  const leavingPolicy = VALID_LEAVING_POLICIES.has(base.leavingPolicy) ? base.leavingPolicy : "teacher";
+  const perusal = Number(base.perusal);
+  const working = Number(base.working);
+  const leaveAfterStart = Number(base.leaveAfterStart);
+  const noLeaveBeforeEnd = Number(base.noLeaveBeforeEnd);
+
+  return {
+    ...base,
+    name: String(base.name ?? fallback.name ?? "Custom exam"),
+    type: String(base.type ?? fallback.type ?? "Custom").replace(" sample", ""),
+    perusal: Number.isFinite(perusal) ? Math.max(0, perusal) : 0,
+    working: Number.isFinite(working) ? Math.max(0, working) : 0,
+    aaraOptions: aaraRates(base),
+    leaveAfterStart: Number.isFinite(leaveAfterStart) ? Math.max(0, leaveAfterStart) : 0,
+    noLeaveBeforeEnd: Number.isFinite(noLeaveBeforeEnd) ? Math.max(0, noLeaveBeforeEnd) : 0,
+    leavingPolicy,
+    presetId: typeof base.presetId === "string" ? base.presetId : "manual",
+    colour: typeof base.colour === "string" ? base.colour : EXAM_COLOURS[0],
+    eaScheduledStart: typeof base.eaScheduledStart === "string" ? base.eaScheduledStart : "09:00",
+  };
+}
+
+function validateExam(exam) {
+  const source = exam ?? {};
+  const name = String(source.name ?? "");
+  const perusal = Number(source.perusal);
+  const working = Number(source.working);
+  const leaveAfterStart = Number(source.leaveAfterStart);
+  const noLeaveBeforeEnd = Number(source.noLeaveBeforeEnd);
+  const leavingPolicy = source.leavingPolicy ?? "teacher";
+
+  if (!name.trim()) return false;
+  if (!Number.isFinite(perusal) || !Number.isFinite(working)) return false;
+  if (perusal < 0 || working < 0) return false;
+  if (leavingPolicy === "teacher") {
+    if (!Number.isFinite(leaveAfterStart) || !Number.isFinite(noLeaveBeforeEnd)) return false;
+    if (leaveAfterStart < 0 || noLeaveBeforeEnd < 0) return false;
+    return true;
+  }
+  return VALID_LEAVING_POLICIES.has(leavingPolicy);
+}
+
+function validateSessionData(value) {
+  if (!value || typeof value !== "object") return null;
+  const safe = value && typeof value === "object" ? value : {};
+  const startPattern = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+  if (!startPattern.test(String(safe.start || ""))) return null;
+  if (!Array.isArray(safe.exams) || safe.exams.length < 1 || safe.exams.length > 3) return null;
+  const examsValid = safe.exams.every(validateExam);
+  if (!examsValid) return null;
+  return {
+    version: SESSION_STORAGE_VERSION,
+    start: String(safe.start),
+    hideTimerSeconds: Boolean(safe.hideTimerSeconds),
+    startChoice: typeof safe.startChoice === "string" ? safe.startChoice : "manual",
+    date: /^\d{4}-\d{2}-\d{2}$/.test(String(safe.date || "")) ? String(safe.date) : dateKey(new Date()),
+    exams: safe.exams.map(exam => normalizeExam(exam)),
+  };
+}
+
 function persistSession(message = "Session saved on this browser.") {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: SESSION_STORAGE_VERSION,
       start: document.querySelector("#sessionStart").value,
+      hideTimerSeconds,
       startChoice: document.querySelector("#startTimeChoice").dataset.applied === "true"
         ? document.querySelector("#startTimeChoice").value
         : "manual",
@@ -104,29 +180,19 @@ function persistCustomPresets() {
 function restoreSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (!saved || !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(saved.start)) return;
-    document.querySelector("#sessionStart").value = saved.start;
+    const validSession = validateSessionData(saved);
+    if (!validSession) return;
+
+    hideTimerSeconds = validSession.hideTimerSeconds;
+    document.querySelector("#hideTimerSeconds").checked = hideTimerSeconds;
+    document.querySelector("#sessionStart").value = validSession.start;
     const startChoice = document.querySelector("#startTimeChoice");
-    startChoice.value = [...startChoice.options].some(option => option.value === saved.startChoice)
-      ? saved.startChoice
+    startChoice.value = [...startChoice.options].some(option => option.value === validSession.startChoice)
+      ? validSession.startChoice
       : "manual";
     startChoice.dataset.applied = "true";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(saved.date)) sessionDate = saved.date;
-    if (Array.isArray(saved.exams) && saved.exams.length >= 1 && saved.exams.length <= 3) {
-      exams = saved.exams.map(exam => {
-        const hasCurrentLeavingModel = Boolean(exam.leavingPolicy);
-        return {
-          ...exam,
-          type: String(exam.type || "Custom").replace(" sample", ""),
-          leaveAfterStart: hasCurrentLeavingModel
-            ? exam.leaveAfterStart
-            : Number(exam.leaveAfterStart || 0) + Number(exam.perusal || 0),
-          aaraOptions: aaraRates(exam),
-          leavingPolicy: exam.leavingPolicy || "teacher",
-          presetId: exam.presetId || "manual",
-        };
-      });
-    }
+    sessionDate = validSession.date;
+    exams = validSession.exams.map(exam => normalizeExam(exam));
     document.querySelector("#sessionSaveStatus").textContent = "Previous session restored from this browser.";
   } catch {
     // Ignore incomplete or invalid saved draft data and use the sample session.
@@ -139,11 +205,14 @@ function durationLabel(minutes) {
   return [hours ? `${hours} hr${hours === 1 ? "" : "s"}` : "", mins ? `${mins} min` : ""].filter(Boolean).join(" ");
 }
 
-function formatRemaining(milliseconds) {
+function formatRemaining(milliseconds, showSeconds = !hideTimerSeconds) {
   const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+
+  if (!showSeconds) return `${hours}:${String(minutes).padStart(2, "0")}`;
+
   return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
@@ -153,6 +222,41 @@ function aaraRates(exam) {
   }
   const legacyRate = Number(exam.aara);
   return legacyRate === 5 || legacyRate === 10 ? [legacyRate] : [];
+}
+
+function createExamTimeline(exam, start = getBaseDate()) {
+  const normalizedExam = normalizeExam(exam);
+  const scheduledStartMs = start.getTime();
+  const scheduledWorkingStartMs = scheduledStartMs + normalizedExam.perusal * 60_000;
+  const scheduledFinishMs = scheduledWorkingStartMs + normalizedExam.working * 60_000;
+  const runtime = normalizedExam.runtime;
+  const startMs = Number(runtime?.sessionStartMs) || scheduledStartMs;
+  const workingStartMs = Number(runtime?.workingStartMs) || scheduledWorkingStartMs;
+  const finishMs = Number(runtime?.finishMs) || scheduledFinishMs;
+  const calculatedAaraFinishes = aaraFinishTimes(normalizedExam, finishMs);
+  const aaraFinishByRate = Object.fromEntries(aaraRates(normalizedExam).map(rate => [
+    rate,
+    Number(runtime?.aaraFinishByRate?.[rate]) || calculatedAaraFinishes[rate],
+  ]));
+  const aaraFinishMs = Math.max(finishMs, ...Object.values(aaraFinishByRate).map(Number));
+  let leavingStartMs = startMs + Number(normalizedExam.leaveAfterStart) * 60_000;
+  if (normalizedExam.leavingPolicy === "qcaa-ea-2025") {
+    const [scheduledHour, scheduledMinute] = (normalizedExam.eaScheduledStart || "09:00").split(":").map(Number);
+    const scheduledStart = new Date(start);
+    scheduledStart.setHours(scheduledHour, scheduledMinute, 0, 0);
+    leavingStartMs = scheduledStart.getTime() + QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart * 60_000;
+  }
+
+  return {
+    startMs,
+    workingStartMs,
+    warningMs: Math.max(workingStartMs, finishMs - 10 * 60_000),
+    finishMs,
+    aaraFinishMs,
+    aaraFinishByRate,
+    leavingStartMs,
+    leavingEndMs: finishMs - Number(normalizedExam.noLeaveBeforeEnd) * 60_000,
+  };
 }
 
 function aaraFinishTimes(exam, finishMs) {
@@ -175,37 +279,7 @@ function makeRuntime(exam, sessionStartMs, workingStartMs, startedPhase = null) 
 }
 
 function examTimes(exam, start = getBaseDate()) {
-  const scheduledStartMs = start.getTime();
-  const scheduledWorkingStartMs = scheduledStartMs + exam.perusal * 60_000;
-  const scheduledFinishMs = scheduledWorkingStartMs + exam.working * 60_000;
-  const runtime = exam.runtime;
-  const startMs = Number(runtime?.sessionStartMs) || scheduledStartMs;
-  const workingStartMs = Number(runtime?.workingStartMs) || scheduledWorkingStartMs;
-  const finishMs = Number(runtime?.finishMs) || scheduledFinishMs;
-  const calculatedAaraFinishes = aaraFinishTimes(exam, finishMs);
-  const aaraFinishByRate = Object.fromEntries(aaraRates(exam).map(rate => [
-    rate,
-    Number(runtime?.aaraFinishByRate?.[rate]) || calculatedAaraFinishes[rate],
-  ]));
-  const aaraFinishMs = Math.max(finishMs, ...Object.values(aaraFinishByRate).map(Number));
-  let leavingStartMs = startMs + Number(exam.leaveAfterStart) * 60_000;
-  if (exam.leavingPolicy === "qcaa-ea-2025") {
-    const [scheduledHour, scheduledMinute] = (exam.eaScheduledStart || "09:00").split(":").map(Number);
-    const scheduledStart = new Date(start);
-    scheduledStart.setHours(scheduledHour, scheduledMinute, 0, 0);
-    leavingStartMs = scheduledStart.getTime() + QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart * 60_000;
-  }
-
-  return {
-    startMs,
-    workingStartMs,
-    warningMs: Math.max(workingStartMs, finishMs - 10 * 60_000),
-    finishMs,
-    aaraFinishMs,
-    aaraFinishByRate,
-    leavingStartMs,
-    leavingEndMs: finishMs - Number(exam.noLeaveBeforeEnd) * 60_000,
-  };
+  return createExamTimeline(exam, start);
 }
 
 function materializeRuntime(exam) {
@@ -308,23 +382,23 @@ function renderCards() {
           <small class="countdown-caption">until exam begins</small>
         </div>
         <div class="timeline">
-          <div class="timeline-row"><span>${exam.perusal ? "Perusal / planning" : "Exam begins"}</span><strong>${formatClock(new Date(times.startMs))}</strong></div>
-          <div class="timeline-row"><span>Working starts</span><strong>${formatClock(new Date(times.workingStartMs))}</strong></div>
-          <div class="timeline-row warning"><span>10-minute warning</span><strong>${formatClock(new Date(times.warningMs))}</strong></div>
-          <div class="timeline-row finish"><span>Working finishes</span><strong>${formatClock(new Date(times.finishMs))}</strong></div>
+          <div class="timeline-row"><span>${exam.perusal ? "Perusal / planning" : "Exam begins"}</span><strong>${formatExamTime(new Date(times.startMs))}</strong></div>
+          <div class="timeline-row"><span>Working starts</span><strong>${formatExamTime(new Date(times.workingStartMs))}</strong></div>
+          <div class="timeline-row warning"><span>10-minute warning</span><strong>${formatExamTime(new Date(times.warningMs))}</strong></div>
+          <div class="timeline-row finish"><span>Working finishes</span><strong>${formatExamTime(new Date(times.finishMs))}</strong></div>
         </div>
         ${selectedAaraRates.length ? `
           <div class="aara">
             <span class="aara-title">AARA finish times</span>
             ${selectedAaraRates.map(rate => {
-              return `<span class="aara-time"><b>+${rate}/30</b><strong>${formatClock(new Date(times.aaraFinishByRate[rate]))}</strong></span>`;
+              return `<span class="aara-time"><b>+${rate}/30</b><strong>${formatExamTime(new Date(times.aaraFinishByRate[rate]))}</strong></span>`;
             }).join("")}
           </div>` : ""}
       </article>`;
   }).join("");
 
   const first = exams[0];
-  document.querySelector("#nextEvent").textContent = `10-minute warning at ${formatClock(new Date(examTimes(first, start).warningMs))}`;
+  document.querySelector("#nextEvent").textContent = `10-minute warning at ${formatExamTime(new Date(examTimes(first, start).warningMs))}`;
   updateSessionState();
 }
 
@@ -392,7 +466,7 @@ function updateSessionState(now = new Date()) {
 
     phase.className = `phase ${phaseClass}`;
     label.textContent = phaseName;
-    countdown.textContent = formatRemaining(remaining);
+    countdown.textContent = formatRemaining(remaining, !hideTimerSeconds);
     caption.textContent = phaseCaption;
 
   });
@@ -411,7 +485,7 @@ function updateSessionState(now = new Date()) {
 
   upcomingEvents.sort((a, b) => a.time - b.time);
   document.querySelector("#nextEvent").textContent = upcomingEvents.length
-    ? `${upcomingEvents[0].label} at ${formatClock(new Date(upcomingEvents[0].time))}`
+    ? `${upcomingEvents[0].label} at ${formatExamTime(new Date(upcomingEvents[0].time))}`
     : hasPaused
       ? "Paused — use an exam clock to continue"
       : "No further scheduled events";
@@ -536,7 +610,7 @@ function updateLeavingPreviews() {
       return;
     }
 
-    preview.textContent = `${formatClock(new Date(times.leavingStartMs))} to ${formatClock(new Date(times.leavingEndMs))}`;
+    preview.textContent = `${formatExamTime(new Date(times.leavingStartMs))} to ${formatExamTime(new Date(times.leavingEndMs))}`;
     preview.classList.remove("invalid-window");
   });
 }
@@ -548,7 +622,7 @@ function nullableNumber(name, fallback) {
 }
 
 function readEditorDraft() {
-  return exams.map((exam, index) => ({
+  return exams.map((exam, index) => normalizeExam({
     ...exam,
     presetId: form.elements.namedItem(`preset-${index}`)?.value ?? exam.presetId ?? "manual",
     name: form.elements.namedItem(`name-${index}`)?.value ?? exam.name,
@@ -631,6 +705,16 @@ examControlDialog.addEventListener("click", event => {
 form.addEventListener("submit", event => {
   event.preventDefault();
   const nextExams = readEditorDraft();
+  const invalidExam = nextExams.findIndex(exam => !validateExam(exam));
+  if (invalidExam !== -1) {
+    const input = form.elements.namedItem(`working-${invalidExam}`) || form.elements.namedItem(`perusal-${invalidExam}`);
+    if (input) {
+      input.setCustomValidity("Enter valid exam timing values before applying this session.");
+      input.reportValidity();
+      input.addEventListener("input", () => input.setCustomValidity(""), { once: true });
+    }
+    return;
+  }
 
   const invalidIndex = nextExams.findIndex(exam => exam.leavingPolicy === "teacher"
     && exam.leaveAfterStart + exam.noLeaveBeforeEnd > exam.perusal + exam.working);
@@ -642,7 +726,7 @@ form.addEventListener("submit", event => {
     return;
   }
 
-  exams = nextExams;
+  exams = nextExams.map(exam => normalizeExam(exam));
   persistSession();
   renderCards();
   closePanel();
@@ -650,6 +734,11 @@ form.addEventListener("submit", event => {
 
 document.querySelector("#setupButton").addEventListener("click", openPanel);
 document.querySelector("#closeSetupButton").addEventListener("click", closePanel);
+document.querySelector("#hideTimerSeconds").addEventListener("change", event => {
+  hideTimerSeconds = event.currentTarget.checked;
+  persistSession("Timer display preference saved on this browser.");
+  renderCards();
+});
 document.querySelector("#addExamButton").addEventListener("click", () => {
   if (exams.length >= 3) return;
   exams = readEditorDraft();

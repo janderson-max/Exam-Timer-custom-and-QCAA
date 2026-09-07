@@ -78,21 +78,39 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .next-event strong { font-size: 1rem; }
 
 .exam-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.exam-card { --subject: #286aa6; overflow: hidden; border: 1px solid var(--line); border-top: 6px solid var(--subject); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+.exam-card { --subject: #286aa6; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-top: 6px solid var(--subject); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
 .exam-card.current { box-shadow: 0 0 0 2px var(--subject), var(--shadow); }
 .colour-blue { --subject: #276aa5; }
 .colour-purple { --subject: #7553a6; }
 .colour-teal { --subject: #147e79; }
 .colour-orange { --subject: #ad5f18; }
 .colour-rose { --subject: #a83e67; }
-.exam-header { position: relative; min-height: 105px; padding: 18px 68px 18px 20px; border-bottom: 1px solid rgba(255,255,255,.22); background: var(--subject); color: white; }
+.exam-header {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  min-height: 126px;
+  padding: 16px 68px 6px 20px;
+  border-bottom: 0;
+  background: var(--subject);
+  color: white;
+}
 .exam-clock-button { position: absolute; top: 12px; right: 12px; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.65); border-radius: 50%; background: rgba(255,255,255,.14); color: white; font-size: 1.45rem; font-weight: 800; line-height: 1; }
 .exam-clock-button:hover, .exam-clock-button:focus-visible { background: rgba(255,255,255,.28); outline: 3px solid rgba(255,255,255,.35); outline-offset: 2px; }
 .exam-clock-button.is-paused { border-color: #ffe1a0; background: #fff4d6; color: #7a5200; }
 .exam-number { color: rgba(255,255,255,.78); font-size: .72rem; font-weight: 800; letter-spacing: .1em; }
-.exam-header h3 { margin: 7px 0 5px; font-size: clamp(1.05rem, 1.65vw, 1.42rem); line-height: 1.15; }
-.exam-header p { margin: 0; color: rgba(255,255,255,.84); font-size: .84rem; }
-.phase { padding: 18px 20px; text-align: center; background: var(--green-soft); }
+.exam-header h3 {
+  margin: 0;
+  min-height: 2.1em;
+  font-size: clamp(1.05rem, 1.65vw, 1.42rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.exam-header p { margin: 0; color: rgba(255,255,255,.84); font-size: .84rem; min-height: 1.1em; line-height: 1.1; }
+.phase { min-height: 146px; padding: 8px 20px 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: var(--green-soft); }
 .phase-label { display: inline-flex; padding: 5px 9px; border-radius: 99px; background: var(--green); color: white; font-size: .7rem; font-weight: 800; letter-spacing: .09em; }
 .phase strong { display: block; margin: 8px 0 0; font-size: clamp(2.25rem, 5vw, 4.5rem); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.055em; }
 .phase small { display: block; margin-top: 5px; color: #416052; }
@@ -120,11 +138,11 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .timeline-row strong { font-size: clamp(1.08rem, 1.45vw, 1.45rem); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .timeline-row.warning strong { color: #9c6500; }
 .timeline-row.finish strong { color: var(--red); }
-.aara { margin: 0 20px 18px; padding: 10px 12px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px 14px; border-radius: 6px; background: var(--blue-soft); color: #174e87; font-size: .8rem; text-align: center; }
-.aara-title { width: 100%; color: #315f8f; font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.aara-time { display: inline-flex; align-items: baseline; gap: 6px; }
+.aara { margin: 0 20px 18px; padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 12px; border-radius: 6px; background: var(--blue-soft); color: #174e87; font-size: .8rem; text-align: center; }
+.aara-title { grid-column: 1 / -1; color: #315f8f; font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.aara-time { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 5px 6px; border-radius: 5px; background: rgba(255,255,255,.38); }
 .aara-time b { font-size: .72rem; }
-.aara strong { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.aara strong { font-size: 1.08rem; font-variant-numeric: tabular-nums; }
 
 .notice-bar { margin-top: 18px; padding: 15px 18px; display: flex; align-items: center; gap: 13px; border-radius: 8px; background: var(--navy-2); color: white; }
 .notice-bar p { margin: 0; font-size: .86rem; }
@@ -142,6 +160,8 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .scrim { position: fixed; z-index: 10; inset: 0; background: rgba(10, 19, 36, .5); }
 form > label { display: grid; gap: 5px; margin: 18px 0; font-size: .8rem; font-weight: 700; }
 input, select { width: 100%; min-height: 42px; border: 1px solid #bfc8d5; border-radius: 6px; padding: 7px 10px; background: white; color: var(--ink); }
+form > label.checkbox-row { display: flex; align-items: center; gap: 8px; margin: 12px 0 16px; }
+.checkbox-row input { width: 17px; height: 17px; min-height: 0; flex: 0 0 auto; margin: 0; padding: 0; accent-color: var(--navy); }
 .time-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .time-input-row[hidden], .fixed-start-summary[hidden] { display: none; }
 .fixed-start-summary { min-height: 48px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #bfc8d5; border-radius: 6px; background: #f5f7fa; }
@@ -239,11 +259,11 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   :fullscreen .room-status { min-height: 60px; margin: 0; padding: 9px 16px; }
   :fullscreen .room-status h2 { font-size: 1.45rem; }
   :fullscreen .exam-grid { min-height: 0; gap: 14px; }
-  :fullscreen .exam-card { min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; }
-  :fullscreen .exam-header { min-height: 82px; padding: 11px 58px 11px 16px; }
+  :fullscreen .exam-card { min-height: 0; display: flex; flex-direction: column; }
+  :fullscreen .exam-header { min-height: 108px; padding: 10px 58px 8px 16px; }
   :fullscreen .exam-clock-button { top: 9px; right: 9px; width: 38px; height: 38px; }
-  :fullscreen .exam-header h3 { margin: 4px 0; font-size: clamp(1.12rem, 1.6vw, 1.5rem); }
-  :fullscreen .phase { padding: 10px 16px 9px; }
+  :fullscreen .exam-header h3 { margin: 0; min-height: 2.1em; font-size: clamp(1.12rem, 1.6vw, 1.5rem); line-height: 1.1; }
+  :fullscreen .phase { min-height: 118px; padding: 8px 16px 10px; }
   :fullscreen .phase strong { margin-top: 4px; font-size: clamp(2.5rem, 4.4vw, 4.6rem); }
   :fullscreen .phase small { margin-top: 1px; }
   :fullscreen .timeline { min-height: 0; padding: 3px 16px; display: grid; grid-template-rows: repeat(4, 1fr); }
