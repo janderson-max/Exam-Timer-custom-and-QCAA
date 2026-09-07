@@ -162,6 +162,8 @@
         </div>
         <p class="edit-running-note" id="examEditRunningNote" hidden></p>
         <div class="edit-grid">
+          <label class="wide">Subject / preset<select id="editPreset" name="editPreset"></select></label>
+          <p class="edit-preset-source wide" id="editPresetSource"></p>
           <label class="wide">Display name<input id="editName" name="editName" required /></label>
           <label>Category
             <select id="editType" name="editType">
@@ -181,7 +183,9 @@
           </fieldset>
         </div>
         <p class="edit-note">Leaving rules and start time stay in <strong>Setup exams</strong>.</p>
-        <div class="dialog-actions">
+        <div class="dialog-actions edit-actions">
+          <button class="button button-secondary" id="resetExamEdit" type="button">Reset changes</button>
+          <span class="edit-actions-gap"></span>
           <button class="button button-secondary" id="cancelExamEdit" type="button">Cancel</button>
           <button class="button button-primary" type="submit">Save changes</button>
         </div>

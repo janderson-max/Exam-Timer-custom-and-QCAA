@@ -27,6 +27,9 @@ const examEditDialog = document.querySelector("#examEditDialog");
 const examEditForm = document.querySelector("#examEditForm");
 let selectedExamIndex = 0;
 let editingExamIndex = 0;
+// Fields a chosen preset brings with it that the quick-edit form does not show
+// (leaving rules, provenance). Staged here so nothing is committed until Save.
+let editPresetPatch = null;
 
 function formatClock(date) {
   return new Intl.DateTimeFormat("en-AU", {
@@ -298,11 +301,11 @@ function renderCards() {
       <article class="exam-card colour-${exam.colour}" data-exam-index="${index}">
         <header class="exam-header">
           <div class="exam-header-actions">
-            <button class="exam-edit-button" type="button" data-exam-edit="${index}" aria-label="Edit details for ${escapeHtml(exam.name)}" title="Edit exam details">
-              ${EDIT_ICON}
-            </button>
             <button class="exam-clock-button ${isPaused ? "is-paused" : ""}" type="button" data-exam-clock="${index}" aria-label="${isPaused ? "Open controls for paused" : "Pause and control"} ${escapeHtml(exam.name)}" title="${isPaused ? "Timer paused — open controls" : "Pause timer and open controls"}">
               ${isPaused ? PAUSE_ICON : CLOCK_ICON}
+            </button>
+            <button class="exam-edit-button" type="button" data-exam-edit="${index}" aria-label="Edit details for ${escapeHtml(exam.name)}" title="Edit exam details">
+              ${EDIT_ICON}
             </button>
           </div>
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}</span>
@@ -484,6 +487,10 @@ function leavingControls(exam, index) {
     </div>`;
 }
 
+function editSourceNote(exam) {
+  return exam.source ? sourceNote(exam) : "Custom / manual exam — timings are not linked to a syllabus.";
+}
+
 function sourceNote(exam) {
   if (!exam.source) return "Manual exam — save it below to reuse it in future sessions.";
   const source = escapeHtml(exam.source);
@@ -608,10 +615,47 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 }
 
-function openExamEdit(index) {
+// The form's current values, in the same shape as savedExamSnapshot, so the two can
+// be compared to tell whether anything has actually been edited.
+function examEditSnapshot() {
+  return JSON.stringify({
+    presetId: document.querySelector("#editPreset").value,
+    name: document.querySelector("#editName").value,
+    type: document.querySelector("#editType").value,
+    perusal: String(document.querySelector("#editPerusal").value),
+    working: String(document.querySelector("#editWorking").value),
+    colour: document.querySelector("#editColour").value,
+    aara: [...examEditForm.querySelectorAll('input[name="editAara"]:checked')].map(input => input.value),
+  });
+}
+
+function savedExamSnapshot(exam) {
+  return JSON.stringify({
+    presetId: exam.presetId || "manual",
+    name: exam.name,
+    type: ["Custom", "FIA", "IA", "EA"].includes(exam.type) ? exam.type : "Custom",
+    perusal: String(exam.perusal),
+    working: String(exam.working),
+    colour: exam.colour,
+    aara: aaraRates(exam).map(String),
+  });
+}
+
+function refreshExamEditReset() {
+  const exam = exams[editingExamIndex];
+  document.querySelector("#resetExamEdit").disabled = !exam || examEditSnapshot() === savedExamSnapshot(exam);
+}
+
+// Fills the form from the exam as currently saved. Used both when opening the dialog
+// and when discarding edits with Reset.
+function populateExamEdit(index) {
   const exam = exams[index];
   if (!exam) return;
-  editingExamIndex = index;
+
+  editPresetPatch = null;
+  const presetSelect = document.querySelector("#editPreset");
+  presetSelect.innerHTML = presetOptions(exam.presetId || "manual");
+  document.querySelector("#editPresetSource").innerHTML = editSourceNote(exam);
 
   document.querySelector("#examEditTitle").textContent = `Exam ${index + 1} · ${exam.name}`;
   document.querySelector("#editName").value = exam.name;
@@ -636,6 +680,13 @@ function openExamEdit(index) {
       : "This exam's timer is already running. Saving recalculates its times from when it actually started, not from the scheduled session start.";
   }
 
+  refreshExamEditReset();
+}
+
+function openExamEdit(index) {
+  if (!exams[index]) return;
+  editingExamIndex = index;
+  populateExamEdit(index);
   examEditDialog.showModal();
   document.querySelector("#editName").focus();
 }
@@ -723,6 +774,46 @@ form.addEventListener("submit", event => {
   closePanel();
 });
 
+document.querySelector("#editPreset").addEventListener("change", event => {
+  const presetId = event.currentTarget.value;
+  const current = exams[editingExamIndex];
+
+  if (presetId === "manual") {
+    editPresetPatch = { presetId: "manual", source: "", sourceUrl: "" };
+    document.querySelector("#editPresetSource").innerHTML = editSourceNote({ presetId: "manual" });
+    return;
+  }
+
+  const preset = [...QCAA_PRESETS, ...customPresets].find(item => item.id === presetId);
+  if (!preset) return;
+
+  // A preset may leave a timing unset (teacher-defined); keep what is there already.
+  const selected = structuredClone(preset);
+  ["perusal", "working", "leaveAfterStart", "noLeaveBeforeEnd"].forEach(field => {
+    if (selected[field] == null) selected[field] = current[field];
+  });
+  editPresetPatch = { ...selected, presetId };
+
+  document.querySelector("#editName").value = selected.name;
+  document.querySelector("#editType").value = ["Custom", "FIA", "IA", "EA"].includes(selected.type) ? selected.type : "Custom";
+  document.querySelector("#editPerusal").value = selected.perusal;
+  document.querySelector("#editWorking").value = selected.working;
+  document.querySelector("#editColour").value = selected.colour;
+  const presetRates = aaraRates(selected);
+  examEditForm.querySelectorAll('input[name="editAara"]').forEach(input => {
+    input.checked = presetRates.includes(Number(input.value));
+  });
+  document.querySelector("#editPresetSource").innerHTML = editSourceNote(selected);
+  refreshExamEditReset();
+});
+
+document.querySelector("#resetExamEdit").addEventListener("click", () => {
+  populateExamEdit(editingExamIndex);
+  document.querySelector("#editName").focus();
+});
+examEditForm.addEventListener("input", refreshExamEditReset);
+examEditForm.addEventListener("change", refreshExamEditReset);
+
 document.querySelector("#closeExamEdit").addEventListener("click", () => examEditDialog.close());
 document.querySelector("#cancelExamEdit").addEventListener("click", () => examEditDialog.close());
 examEditForm.addEventListener("submit", event => {
@@ -732,6 +823,7 @@ examEditForm.addEventListener("submit", event => {
 
   const draft = normalizeExam({
     ...exam,
+    ...(editPresetPatch || {}),
     name: document.querySelector("#editName").value,
     type: document.querySelector("#editType").value,
     perusal: Number(document.querySelector("#editPerusal").value),
