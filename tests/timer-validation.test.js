@@ -1,90 +1,110 @@
 const assert = require('node:assert/strict');
 
-const SAMPLE_EXAMS = [
-  { name: 'Sample Mathematics — Paper 1', type: 'EA', perusal: 5, working: 90, aaraOptions: [5, 10], leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: 'teacher', colour: 'blue', presetId: 'manual' },
-  { name: 'Sample English — Written response', type: 'IA', perusal: 10, working: 120, aaraOptions: [], leaveAfterStart: 60, noLeaveBeforeEnd: 30, leavingPolicy: 'teacher', colour: 'purple', presetId: 'manual' },
-  { name: 'Custom Year 11 Science', type: 'Custom', perusal: 10, working: 100, aaraOptions: [10], leaveAfterStart: 30, noLeaveBeforeEnd: 15, leavingPolicy: 'teacher', colour: 'teal', presetId: 'manual' },
-];
+// These come from the files the browser actually loads, so a regression in the
+// app fails here. Do not re-implement any of this logic in the test.
+const {
+  aaraRates,
+  normalizeExam,
+  examProblem,
+  validateExam,
+  migrateLegacyExam,
+  createExamTimeline,
+  formatRemaining,
+} = require('../timer-core.js');
+const { QCAA_EA_DIRECTIONS } = require('../presets.js');
 
-function aaraRates(exam) {
-  if (Array.isArray(exam.aaraOptions)) {
-    return [...new Set(exam.aaraOptions.map(Number).filter(rate => rate === 5 || rate === 10))].sort((a, b) => a - b);
-  }
-  const legacyRate = Number(exam.aara);
-  return legacyRate === 5 || legacyRate === 10 ? [legacyRate] : [];
-}
+const SAMPLE_EXAM = {
+  name: 'Sample Mathematics — Paper 1', type: 'EA', perusal: 5, working: 90,
+  aaraOptions: [5, 10], leaveAfterStart: 30, noLeaveBeforeEnd: 15,
+  leavingPolicy: 'teacher', colour: 'blue', presetId: 'manual',
+};
 
-function normalizeExam(exam = {}, fallback = {}) {
-  const base = { ...fallback, ...(exam ?? {}) };
-  const leavingPolicy = ['teacher', 'qcaa-ea-2025'].includes(base.leavingPolicy) ? base.leavingPolicy : 'teacher';
-  const perusal = Number(base.perusal);
-  const working = Number(base.working);
-  const leaveAfterStart = Number(base.leaveAfterStart);
-  const noLeaveBeforeEnd = Number(base.noLeaveBeforeEnd);
+const at = (hour, minute) => new Date(2026, 8, 7, hour, minute, 0).getTime();
+const START = new Date(at(9, 0));
 
-  return {
-    ...base,
-    name: String(base.name ?? fallback.name ?? 'Custom exam'),
-    type: String(base.type ?? fallback.type ?? 'Custom').replace(' sample', ''),
-    perusal: Number.isFinite(perusal) ? Math.max(0, perusal) : 0,
-    working: Number.isFinite(working) ? Math.max(0, working) : 0,
-    aaraOptions: aaraRates(base),
-    leaveAfterStart: Number.isFinite(leaveAfterStart) ? Math.max(0, leaveAfterStart) : 0,
-    noLeaveBeforeEnd: Number.isFinite(noLeaveBeforeEnd) ? Math.max(0, noLeaveBeforeEnd) : 0,
-    leavingPolicy,
-    presetId: typeof base.presetId === 'string' ? base.presetId : 'manual',
-    colour: typeof base.colour === 'string' ? base.colour : 'blue',
-    eaScheduledStart: typeof base.eaScheduledStart === 'string' ? base.eaScheduledStart : '09:00',
-  };
-}
+// --- validation -----------------------------------------------------------
+assert.equal(validateExam(SAMPLE_EXAM), true, 'sample exam should validate');
+assert.equal(examProblem(SAMPLE_EXAM), null, 'sample exam should report no problem');
 
-function validateExam(exam) {
-  const source = exam ?? {};
-  const name = String(source.name ?? '');
-  const perusal = Number(source.perusal);
-  const working = Number(source.working);
-  const leaveAfterStart = Number(source.leaveAfterStart);
-  const noLeaveBeforeEnd = Number(source.noLeaveBeforeEnd);
-  const leavingPolicy = source.leavingPolicy ?? 'teacher';
+assert.deepEqual(
+  examProblem({ ...SAMPLE_EXAM, name: '   ' }),
+  { field: 'name', message: 'Enter a display name for this exam.' },
+  'a blank name should be reported against the name field',
+);
 
-  if (!name.trim()) return false;
-  if (!Number.isFinite(perusal) || !Number.isFinite(working)) return false;
-  if (perusal < 0 || working < 0) return false;
-  if (leavingPolicy === 'teacher') {
-    if (!Number.isFinite(leaveAfterStart) || !Number.isFinite(noLeaveBeforeEnd)) return false;
-    if (leaveAfterStart < 0 || noLeaveBeforeEnd < 0) return false;
-    return true;
-  }
-  return ['teacher', 'qcaa-ea-2025'].includes(leavingPolicy);
-}
+assert.equal(examProblem({ ...SAMPLE_EXAM, perusal: -1 }).field, 'perusal', 'negative perusal is rejected');
+assert.equal(examProblem({ ...SAMPLE_EXAM, working: 'abc' }).field, 'working', 'non-numeric working time is rejected');
 
-function createExamTimeline(exam, start = new Date(2026, 8, 7, 9, 0, 0)) {
-  const normalizedExam = normalizeExam(exam);
-  const scheduledStartMs = start.getTime();
-  const scheduledWorkingStartMs = scheduledStartMs + normalizedExam.perusal * 60_000;
-  const scheduledFinishMs = scheduledWorkingStartMs + normalizedExam.working * 60_000;
-  const aaraFinishByRate = Object.fromEntries(aaraRates(normalizedExam).map(rate => [
-    rate,
-    scheduledFinishMs + Math.round((normalizedExam.working / 30) * rate) * 60_000,
-  ]));
-  const aaraFinishMs = Math.max(scheduledFinishMs, ...Object.values(aaraFinishByRate).map(Number));
-  return {
-    startMs: scheduledStartMs,
-    workingStartMs: scheduledWorkingStartMs,
-    finishMs: scheduledFinishMs,
-    aaraFinishMs,
-    aaraFinishByRate,
-    leavingStartMs: scheduledStartMs + Number(normalizedExam.leaveAfterStart) * 60_000,
-    leavingEndMs: scheduledFinishMs - Number(normalizedExam.noLeaveBeforeEnd) * 60_000,
-  };
-}
+// An empty number input reaches validation as null, and Number(null) is 0, so this
+// is the case that silently became a 0-minute exam when normalisation ran first.
+assert.equal(examProblem({ ...SAMPLE_EXAM, working: null }).field, 'working', 'an empty working time is rejected, not read as 0');
+assert.equal(examProblem({ ...SAMPLE_EXAM, leaveAfterStart: null }).field, 'leaveAfterStart', 'an empty leaving field is rejected');
 
-assert.equal(validateExam(SAMPLE_EXAMS[0]), true, 'sample exam should validate');
-assert.equal(validateExam({ name: '', perusal: 10, working: 60, leavingPolicy: 'teacher' }), false, 'empty name should be rejected');
-assert.equal(validateExam({ name: 'X', perusal: -1, working: 60, leavingPolicy: 'teacher' }), false, 'negative perusal should be rejected');
-const timeline = createExamTimeline(SAMPLE_EXAMS[0]);
-assert.equal(timeline.startMs, new Date(2026, 8, 7, 9, 0, 0).getTime(), 'start time should be computed');
-assert.equal(timeline.finishMs, new Date(2026, 8, 7, 10, 35, 0).getTime(), 'working end should include perusal');
-assert.equal(aaraRates(SAMPLE_EXAMS[0]).length, 2, 'AARA rates should be retained');
+// The QCAA policy sets its own leaving window, so those two fields may be blank.
+assert.equal(
+  validateExam({ ...SAMPLE_EXAM, leavingPolicy: 'qcaa-ea-2025', leaveAfterStart: null, noLeaveBeforeEnd: null }),
+  true,
+  'QCAA EA exams do not require teacher-defined leaving fields',
+);
+
+// --- normalisation and legacy migration -----------------------------------
+const normalized = normalizeExam({ name: 'X', perusal: '10', working: '90', leaveAfterStart: -5 });
+assert.equal(normalized.perusal, 10, 'numeric strings are coerced');
+assert.equal(normalized.leaveAfterStart, 0, 'negative values are clamped');
+assert.equal(normalized.leavingPolicy, 'teacher', 'an unknown leaving policy falls back to teacher-defined');
+
+// Pre-policy saves measured "cannot leave for first N minutes" from the start of
+// working time; folding perusal back in keeps an old saved session accurate.
+assert.equal(
+  migrateLegacyExam({ name: 'Old', perusal: 10, working: 90, leaveAfterStart: 30 }).leaveAfterStart,
+  40,
+  'a legacy exam has perusal folded into its leaving offset',
+);
+assert.equal(
+  migrateLegacyExam(SAMPLE_EXAM).leaveAfterStart,
+  30,
+  'a current exam is left untouched by the migration',
+);
+
+// --- timeline -------------------------------------------------------------
+const timeline = createExamTimeline(SAMPLE_EXAM, START, QCAA_EA_DIRECTIONS);
+assert.equal(timeline.startMs, at(9, 0), 'the exam starts at the session start');
+assert.equal(timeline.workingStartMs, at(9, 5), 'working time starts after perusal');
+assert.equal(timeline.finishMs, at(10, 35), 'working time ends after perusal plus working');
+assert.equal(timeline.warningMs, at(10, 25), 'the warning lands 10 minutes before the finish');
+assert.equal(timeline.leavingStartMs, at(9, 30), 'leaving opens after the teacher-defined offset');
+assert.equal(timeline.leavingEndMs, at(10, 20), 'leaving closes before the teacher-defined final period');
+
+assert.equal(aaraRates(SAMPLE_EXAM).length, 2, 'AARA rates should be retained');
+assert.equal(timeline.aaraFinishByRate[5], at(10, 50), '+5/30 on 90 minutes adds 15 minutes');
+assert.equal(timeline.aaraFinishByRate[10], at(11, 5), '+10/30 on 90 minutes adds 30 minutes');
+assert.equal(timeline.aaraFinishMs, at(11, 5), 'the room clears at the longest AARA finish');
+
+// The QCAA leaving window is measured from the scheduled session, not from when
+// the supervisor actually started the timer.
+const lateStart = createExamTimeline(
+  { ...SAMPLE_EXAM, leavingPolicy: 'qcaa-ea-2025', eaScheduledStart: '09:00' },
+  new Date(at(9, 10)),
+  QCAA_EA_DIRECTIONS,
+);
+assert.equal(
+  lateStart.leavingStartMs,
+  at(9, 0) + QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart * 60_000,
+  'QCAA leaving opens 40 minutes after the scheduled start, not the actual start',
+);
+
+// --- countdown formatting -------------------------------------------------
+assert.equal(formatRemaining(90 * 60_000, true), '1:30:00', 'full format shows hours, minutes and seconds');
+assert.equal(formatRemaining(59_000, true), '0:00:59', 'the final minute counts down in seconds');
+
+// With seconds hidden the display must round UP: showing 0:00 while working time
+// is still running would have a supervisor calling time up to a minute early.
+assert.equal(formatRemaining(59_000, false), '0:01', '59 seconds remaining reads as 1 minute, not 0');
+assert.equal(formatRemaining(1_000, false), '0:01', '1 second remaining still reads as 1 minute');
+assert.equal(formatRemaining(60_000, false), '0:01', 'exactly 1 minute reads as 1 minute');
+assert.equal(formatRemaining(60_001, false), '0:02', 'just over 1 minute rounds up');
+assert.equal(formatRemaining(90 * 60_000, false), '1:30', 'exact durations do not gain a minute');
+assert.equal(formatRemaining(0, false), '0:00', 'only a finished exam reads 0:00');
+assert.equal(formatRemaining(-5_000, false), '0:00', 'overrun clamps to 0:00');
 
 console.log('All timer validation checks passed.');

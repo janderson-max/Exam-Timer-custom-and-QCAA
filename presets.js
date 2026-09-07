@@ -98,3 +98,7 @@ function makeSubjectPresets(subject) {
     },
   ];
 }
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { QCAA_PRESETS, QCAA_EA_DIRECTIONS };
+}

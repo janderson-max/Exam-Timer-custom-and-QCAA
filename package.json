@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node tests/timer-validation.test.js"
+    "test": "node tests/timer-validation.test.js && node tests/session-restore.test.js"
   }
 }
