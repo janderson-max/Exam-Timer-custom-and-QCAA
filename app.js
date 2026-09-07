@@ -399,9 +399,23 @@ function updateSessionState(now = new Date()) {
 
 function presetOptions(selectedId) {
   const option = preset => `<option value="${preset.id}" ${preset.id === selectedId ? "selected" : ""}>${escapeHtml(preset.name)}</option>`;
+
+  // One group per subject: a single flat list of every QCAA instrument is too long
+  // to pick from. The group heading carries the subject, so the option only needs
+  // the instrument (e.g. "EA Paper 1" under "Biology").
+  const bySubject = new Map();
+  QCAA_PRESETS.forEach(preset => {
+    if (!bySubject.has(preset.subject)) bySubject.set(preset.subject, []);
+    bySubject.get(preset.subject).push(preset);
+  });
+  const qcaaGroups = [...bySubject].map(([subject, presets]) => `
+    <optgroup label="${escapeHtml(subject)}">${presets.map(preset =>
+      `<option value="${preset.id}" ${preset.id === selectedId ? "selected" : ""}>${escapeHtml(preset.label || preset.name)}</option>`
+    ).join("")}</optgroup>`).join("");
+
   return `
     <option value="manual" ${selectedId === "manual" ? "selected" : ""}>Custom / manual exam</option>
-    <optgroup label="QCAA 2025 syllabus">${QCAA_PRESETS.map(option).join("")}</optgroup>
+    ${qcaaGroups}
     ${customPresets.length ? `<optgroup label="Saved custom exams">${customPresets.map(option).join("")}</optgroup>` : ""}`;
 }
 

@@ -1,29 +1,14 @@
-// QCAA's "2025 syllabus" is the syllabus family first implemented with
-// students starting Units 1 and 2 in 2025 and completing in 2026 or later.
-// These records use the current official versions available in September 2026.
-const QCAA_PRESETS = [
-  ...makeSubjectPresets({
-    code: "general",
-    subject: "General Mathematics",
-    colour: "blue",
-    version: "2025 v1.3 (January 2026)",
-    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_general_25_syll.pdf",
-  }),
-  ...makeSubjectPresets({
-    code: "methods",
-    subject: "Mathematical Methods",
-    colour: "purple",
-    version: "2025 v1.3 (January 2026)",
-    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_methods_25_syll.pdf",
-  }),
-  ...makeSubjectPresets({
-    code: "specialist",
-    subject: "Specialist Mathematics",
-    colour: "teal",
-    version: "2025 v1.4 (March 2026)",
-    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf",
-  }),
-];
+// QCAA senior syllabus assessment data.
+//
+// Every perusal/planning and working time below is taken from the subject syllabus
+// linked in sourceUrl, extracted from the PDF rather than transcribed by hand, and
+// carries the syllabus version it came from. Only instruments the syllabus states a
+// time for are listed: which internal assessments are timed examinations varies by
+// subject, some subjects use planning time instead of perusal time, and some
+// external assessments are a single paper rather than two.
+//
+// Re-check against the current syllabus and QCAA administration directions before
+// using these in a real examination.
 
 const QCAA_EA_DIRECTIONS = {
   name: "Directions for students: External assessment (June 2025)",
@@ -32,73 +17,579 @@ const QCAA_EA_DIRECTIONS = {
   finalMinutes: 10,
 };
 
-function makeSubjectPresets(subject) {
-  const source = `${subject.subject} ${subject.version}`;
-  const common = {
-    perusal: 5,
-    working: 90,
+const QCAA_SUBJECTS = [
+  {
+    code: "aboriginal-torres-strait-islander-studies",
+    subject: "Aboriginal & Torres Strait Islander Studies",
+    colour: "orange",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_atsi_studies_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "accounting",
+    subject: "Accounting",
+    colour: "orange",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_accounting_25_syll.pdf",
+    instruments: [
+      { key: "ia2", type: "IA", label: "IA2 Combination response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ia3", type: "IA", label: "IA3 Combination response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "aerospace-systems",
+    subject: "Aerospace Systems",
+    colour: "blue",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_aerospace_sys_25_syll.pdf",
+    instruments: [
+      { key: "ia2", type: "IA", label: "IA2 Combination response", timing: "perusal", perusal: 5, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "agricultural-science",
+    subject: "Agricultural Science",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_agricultural_science_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "ancient-history",
+    subject: "Ancient History",
+    colour: "orange",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_ancient_history_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "biology",
+    subject: "Biology",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_biology_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "business",
+    subject: "Business",
+    colour: "orange",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_business_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "chemistry",
+    subject: "Chemistry",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_chemistry_25_syll.pdf",
+    instruments: [
+      { key: "ia1-page-45-of-59-c-onditions", type: "IA", label: "IA1 Page 45 of 59 C onditions", timing: "perusal", perusal: 5, working: 60 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "chinese",
+    subject: "Chinese",
+    colour: "rose",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_chinese_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "chinese-extension",
+    subject: "Chinese Extension",
+    colour: "rose",
+    version: "2026 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_chinese_ext_26_syll.pdf",
+    instruments: [
+      { key: "ia1-short-response", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "dance",
+    subject: "Dance",
+    colour: "purple",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_dance_25_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "design",
+    subject: "Design",
+    colour: "blue",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_design_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Design challenge", timing: "planning", perusal: 15, working: 90 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "digital-solutions",
+    subject: "Digital Solutions",
+    colour: "blue",
+    version: "2025 v1.4 (February 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_digital_solutions_25_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "drama",
+    subject: "Drama",
+    colour: "purple",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_drama_25_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "earth-environmental-science",
+    subject: "Earth & Environmental Science",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_earth_science_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "economics",
+    subject: "Economics",
+    colour: "orange",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_economics_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ia3", type: "IA", label: "IA3 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "engineering",
+    subject: "Engineering",
+    colour: "blue",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_engineering_25_syll.pdf",
+    instruments: [
+      { key: "ia2", type: "IA", label: "IA2 Combination response", timing: "perusal", perusal: 5, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "english",
+    subject: "English",
+    colour: "purple",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_english_25_syll.pdf",
+    instruments: [
+      { key: "ia3", type: "IA", label: "IA3 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "english-literature-extension",
+    subject: "English & Literature Extension",
+    colour: "purple",
+    version: "2026 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_english_lit_ext_26_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 30, working: 120 },
+    ],
+  },
+  {
+    code: "english-as-an-additional-language",
+    subject: "English as an Additional Language",
+    colour: "purple",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_english_add_lang_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "film-television-new-media",
+    subject: "Film, Television & New Media",
+    colour: "purple",
+    version: "2025 v1.4 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_film_tv_25_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "food-nutrition",
+    subject: "Food & Nutrition",
+    colour: "blue",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_food_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "perusal", perusal: 5, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "french",
+    subject: "French",
+    colour: "rose",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_french_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
+      { key: "ea-page-35-of-36-conditi-ons", type: "EA", label: "EA Page 35 of 36 Conditi ons", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "french-extension",
+    subject: "French Extension",
+    colour: "rose",
+    version: "2026 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_french_ext_25_syll.pdf",
+    instruments: [
+      { key: "ia1-short-response", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "general-mathematics",
+    subject: "General Mathematics",
+    colour: "blue",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_general_25_syll.pdf",
+    instruments: [
+      { key: "ia2", type: "IA", label: "IA2 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia3", type: "IA", label: "IA3 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "geography",
+    subject: "Geography",
+    colour: "orange",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_geography_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "german",
+    subject: "German",
+    colour: "rose",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_german_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
+      { key: "ea-page-35-of-36-conditi-ons", type: "EA", label: "EA Page 35 of 36 Conditi ons", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "german-extension",
+    subject: "German Extension",
+    colour: "rose",
+    version: "2026 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_german_ext_26_syll.pdf",
+    instruments: [
+      { key: "ia1-short-response", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "health",
+    subject: "Health",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_health_25_syll.pdf",
+    instruments: [
+      { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "italian",
+    subject: "Italian",
+    colour: "rose",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_italian_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "japanese",
+    subject: "Japanese",
+    colour: "rose",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_japanese_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "legal-studies",
+    subject: "Legal Studies",
+    colour: "orange",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_legal_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "literature",
+    subject: "Literature",
+    colour: "purple",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_literature_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "marine-science",
+    subject: "Marine Science",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_marine_science_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "mathematical-methods",
+    subject: "Mathematical Methods",
+    colour: "blue",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_methods_25_syll.pdf",
+    instruments: [
+      { key: "ia2", type: "IA", label: "IA2 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia3", type: "IA", label: "IA3 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "modern-history",
+    subject: "Modern History",
+    colour: "orange",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_modern_history_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "music",
+    subject: "Music",
+    colour: "purple",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_25_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "music-extension-composition",
+    subject: "Music Extension Composition",
+    colour: "purple",
+    version: "2026 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_ext_26_comp_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "music-extension-musicology",
+    subject: "Music Extension Musicology",
+    colour: "purple",
+    version: "2026 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_ext_26_music_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "music-extension-performance",
+    subject: "Music Extension Performance",
+    colour: "purple",
+    version: "2026 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_ext_26_perf_syll.pdf",
+    instruments: [
+      { key: "ea-conditio-ns", type: "EA", label: "EA Conditio ns", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+  {
+    code: "philosophy-reason",
+    subject: "Philosophy & Reason",
+    colour: "orange",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_philosophy_reason_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "physical-education",
+    subject: "Physical Education",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_pe_25_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "physics",
+    subject: "Physics",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_physics_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "psychology",
+    subject: "Psychology",
+    colour: "teal",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_psychology_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "spanish",
+    subject: "Spanish",
+    colour: "rose",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_spanish_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
+      { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
+    ],
+  },
+  {
+    code: "specialist-mathematics",
+    subject: "Specialist Mathematics",
+    colour: "blue",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf",
+    instruments: [
+      { key: "ia2", type: "IA", label: "IA2 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ia3", type: "IA", label: "IA3 Short response", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
+      { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
+    ],
+  },
+  {
+    code: "study-of-religion",
+    subject: "Study of Religion",
+    colour: "orange",
+    version: "2025 v1.4 (March 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_study_religion_25_syll.pdf",
+    instruments: [
+      { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
+    ],
+  },
+  {
+    code: "visual-art",
+    subject: "Visual Art",
+    colour: "purple",
+    version: "2025 v1.3 (January 2026)",
+    sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_visual_art_25_syll.pdf",
+    instruments: [
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
+    ],
+  },
+];
+
+// One preset per timed instrument. External assessments carry the QCAA leaving rule;
+// internal assessment leaving windows are teacher-defined, so they are left blank.
+const QCAA_PRESETS = QCAA_SUBJECTS.flatMap(subject => subject.instruments.map(instrument => {
+  const isExternal = instrument.type === "EA";
+  return {
+    id: `qcaa-${subject.code}-${instrument.key}`,
+    name: `${subject.subject} — ${instrument.label}`,
+    subject: subject.subject,
+    label: instrument.label,
+    type: instrument.type,
+    perusal: instrument.perusal,
+    working: instrument.working,
     aaraOptions: [],
+    leaveAfterStart: isExternal ? QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart : null,
+    noLeaveBeforeEnd: isExternal ? QCAA_EA_DIRECTIONS.finalMinutes : null,
+    leavingPolicy: isExternal ? "qcaa-ea-2025" : "teacher",
+    eaScheduledStart: "09:00",
     colour: subject.colour,
-    source,
+    source: `${subject.subject} ${subject.version}`,
     sourceUrl: subject.sourceUrl,
   };
-
-  return [
-    {
-      id: `qcaa-${subject.code}-fia`,
-      name: `${subject.subject} — FIA (teacher-defined)`,
-      type: "FIA",
-      perusal: null,
-      working: null,
-      aaraOptions: [],
-      leaveAfterStart: null,
-      noLeaveBeforeEnd: null,
-      leavingPolicy: "teacher",
-      colour: subject.colour,
-      source: `${source}: Units 1–2 assessment conditions are school-developed`,
-      sourceUrl: subject.sourceUrl,
-    },
-    {
-      ...common,
-      id: `qcaa-${subject.code}-ia2`,
-      name: `${subject.subject} — IA2 examination`,
-      type: "IA",
-      leaveAfterStart: null,
-      noLeaveBeforeEnd: null,
-      leavingPolicy: "teacher",
-    },
-    {
-      ...common,
-      id: `qcaa-${subject.code}-ia3`,
-      name: `${subject.subject} — IA3 examination`,
-      type: "IA",
-      leaveAfterStart: null,
-      noLeaveBeforeEnd: null,
-      leavingPolicy: "teacher",
-    },
-    {
-      ...common,
-      id: `qcaa-${subject.code}-ea1`,
-      name: `${subject.subject} — EA Paper 1`,
-      type: "EA",
-      leaveAfterStart: 40,
-      noLeaveBeforeEnd: 10,
-      leavingPolicy: "qcaa-ea-2025",
-      eaScheduledStart: "09:00",
-    },
-    {
-      ...common,
-      id: `qcaa-${subject.code}-ea2`,
-      name: `${subject.subject} — EA Paper 2`,
-      type: "EA",
-      leaveAfterStart: 40,
-      noLeaveBeforeEnd: 10,
-      leavingPolicy: "qcaa-ea-2025",
-      eaScheduledStart: "09:00",
-    },
-  ];
-}
+}));
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { QCAA_PRESETS, QCAA_EA_DIRECTIONS };
+  module.exports = { QCAA_PRESETS, QCAA_SUBJECTS, QCAA_EA_DIRECTIONS };
 }

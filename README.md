@@ -2,7 +2,7 @@
 
 An early interface prototype for a browser-based custom and QCAA exam-room timer.
 
-The app includes sourced 2025-syllabus presets for General Mathematics, Mathematical Methods and Specialist Mathematics. It remains a draft application and must be checked against the assessment instrument and current QCAA administration directions before use in an examination.
+The app includes sourced presets for every QCAA General subject with an external assessment. It remains a draft application and must be checked against the assessment instrument and current QCAA administration directions before use in an examination.
 
 The draft includes distinct subject colours, a configurable per-exam permitted leaving window, enlarged room-readable timings, a supervisor setup panel, and a viewport-fitted full-screen display.
 
@@ -24,12 +24,31 @@ Countdowns are recalculated against the browser clock every second, including wa
 
 ## QCAA data included
 
-- IA2 and IA3 examinations: 5 minutes perusal and 90 minutes working for all three included mathematics subjects.
-- EA Paper 1 and Paper 2: 5 minutes perusal and 90 minutes working for all three included mathematics subjects.
-- EA leaving rule: not in the first 40 minutes from the scheduled session start or the final 10 minutes.
-- FIA: teacher-defined. The 2025 syllabuses require schools to develop Units 1–2 assessment programs but do not prescribe FIA examination timings.
+Presets cover 48 General subjects and 115 timed instruments, in `presets.js`.
 
-Sources are linked from each preset in the setup panel. The data currently follows General Mathematics 2025 v1.3, Mathematical Methods 2025 v1.3, Specialist Mathematics 2025 v1.4, and *Directions for students: External assessment* (June 2025).
+Each timing is taken from that subject’s syllabus PDF, extracted from the document
+rather than transcribed by hand, and carries the syllabus version it came from. The
+source is linked from each preset in the setup panel.
+
+Only instruments the syllabus states a time for are included, so the set varies by
+subject rather than following a fixed template:
+
+- **Which internal assessment is a timed examination differs.** Sciences time IA1 (a 60-minute data test); English times IA3; the mathematics subjects time IA2 and IA3. A subject’s other internal assessments are portfolios, performances or investigations and are not listed.
+- **Perusal time and planning time both occur.** Sciences and mathematics use perusal; English, humanities and the arts use planning. Both map to the app’s single perusal/planning field.
+- **External assessments may be one paper or two.** Mathematics and the sciences have Paper 1 and Paper 2; English and most humanities subjects have a single paper.
+- **Some instruments have separately timed components.** In the languages, IA2 is one examination with an extended response (10 + 80) and a conversation (10 + 7), listed separately.
+- **EA leaving rule:** not in the first 40 minutes from the scheduled session start, or the final 10 minutes. Applied to every external assessment preset.
+- **Internal assessment leaving windows are left blank**, because they are teacher-defined.
+
+Units 1–2 formative assessment is not listed: the syllabuses require schools to
+develop their own Units 1–2 programs and do not prescribe timings. Use *Custom /
+manual exam* for those.
+
+`tests/qcaa-presets.test.js` checks the dataset: unique ids, a positive working time
+and a syllabus version and URL on every preset, the EA leaving rule on every external
+assessment, and a set of timings pinned to the syllabuses they were read from.
+
+Applied subjects and Short Courses are excluded, as they have no external assessment.
 
 ## Preview locally
 
