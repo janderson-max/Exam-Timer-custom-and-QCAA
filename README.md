@@ -24,7 +24,7 @@ Countdowns are recalculated against the browser clock every second, including wa
 
 ## QCAA data included
 
-Presets cover 48 General subjects and 115 timed instruments, in `presets.js`.
+Presets cover 48 General subjects and 163 entries, in `presets.js`.
 
 Each timing is taken from that subject’s syllabus PDF, extracted from the document
 rather than transcribed by hand, and carries the syllabus version it came from. The
@@ -40,9 +40,28 @@ subject rather than following a fixed template:
 - **EA leaving rule:** not in the first 40 minutes from the scheduled session start, or the final 10 minutes. Applied to every external assessment preset.
 - **Internal assessment leaving windows are left blank**, because they are teacher-defined.
 
-Units 1–2 formative assessment is not listed: the syllabuses require schools to
-develop their own Units 1–2 programs and do not prescribe timings. Use *Custom /
-manual exam* for those.
+### Units 1–2 (FIA)
+
+The syllabuses prescribe **no** Units 1–2 timings — schools develop their own
+programs. Each subject therefore has one FIA entry that mirrors that subject's own
+summative instrument (its timed internal assessment where it has one, otherwise its
+external assessment), labelled *FIA — mirrors IA1 Data test* and sourced as
+"Units 1–2 school-developed" rather than citing the syllabus for a time it does not
+give.
+
+Because these are school-set, changing an FIA's perusal or working time is
+remembered against that FIA and reapplied next time it is chosen. Setting it back to
+the mirrored values forgets the override, and **Restore sample** clears them all.
+Syllabus-prescribed timings are never overridden this way.
+
+### Scheduled starts
+
+An external assessment measures its leaving window from the scheduled QCAA session,
+so a late start does not let students leave early. The same applies to a school
+exam: setting a **scheduled period start** anchors the teacher-defined leaving
+window to that period rather than to when the timer was actually started, and the
+period is shown on the exam card. Exams default to *not scheduled*, which measures
+from the actual start.
 
 `tests/qcaa-presets.test.js` checks the dataset: unique ids, a positive working time
 and a syllabus version and URL on every preset, the EA leaving rule on every external

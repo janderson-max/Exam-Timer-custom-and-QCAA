@@ -10,6 +10,7 @@ const {
   migrateLegacyExam,
   createExamTimeline,
   formatRemaining,
+  periodLabel,
 } = require('../timer-core.js');
 const { QCAA_EA_DIRECTIONS } = require('../presets.js');
 
@@ -106,5 +107,37 @@ assert.equal(formatRemaining(60_001, false), '0:02', 'just over 1 minute rounds 
 assert.equal(formatRemaining(90 * 60_000, false), '1:30', 'exact durations do not gain a minute');
 assert.equal(formatRemaining(0, false), '0:00', 'only a finished exam reads 0:00');
 assert.equal(formatRemaining(-5_000, false), '0:00', 'overrun clamps to 0:00');
+
+// --- a timetabled period anchors the leaving window -----------------------
+// Without this, a late start would let students leave late; with it, the window is
+// measured from the period the exam was scheduled in, matching the QCAA EA rule.
+const lateActualStart = new Date(at(11, 18));
+const scheduled = createExamTimeline(
+  { ...SAMPLE_EXAM, perusal: 0, working: 70, leaveAfterStart: 30, noLeaveBeforeEnd: 10, scheduledPeriodStart: '11:10' },
+  lateActualStart,
+  QCAA_EA_DIRECTIONS,
+);
+assert.equal(scheduled.leavingStartMs, at(11, 40), 'leaving opens 30 minutes after the scheduled period start');
+
+const unscheduled = createExamTimeline(
+  { ...SAMPLE_EXAM, perusal: 0, working: 70, leaveAfterStart: 30, noLeaveBeforeEnd: 10 },
+  lateActualStart,
+  QCAA_EA_DIRECTIONS,
+);
+assert.equal(unscheduled.leavingStartMs, at(11, 48), 'with no period set, it is still measured from the actual start');
+
+// The QCAA rule keeps precedence over a period, and an unknown period is ignored.
+const qcaaWins = createExamTimeline(
+  { ...SAMPLE_EXAM, leavingPolicy: 'qcaa-ea-2025', eaScheduledStart: '09:00', scheduledPeriodStart: '11:10' },
+  lateActualStart,
+  QCAA_EA_DIRECTIONS,
+);
+assert.equal(qcaaWins.leavingStartMs, at(9, 40), 'the QCAA scheduled session still wins for an EA');
+
+assert.equal(normalizeExam({ scheduledPeriodStart: '07:00' }).scheduledPeriodStart, '', 'a time outside the timetable is discarded');
+assert.equal(normalizeExam({ scheduledPeriodStart: '11:10' }).scheduledPeriodStart, '11:10', 'a timetabled period is kept');
+assert.equal(normalizeExam({}).scheduledPeriodStart, '', 'exams are unscheduled by default');
+assert.equal(periodLabel('11:10'), 'Period 3', 'periods are named for the card');
+assert.equal(periodLabel('07:00'), '', 'an unknown time has no period name');
 
 console.log('All timer validation checks passed.');

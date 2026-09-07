@@ -152,4 +152,35 @@ app.read('applyPresetChoice("qcaa-biology-ia1")');
 assert.equal(app.el('#editLeavingPolicy').value, 'teacher', 'an IA preset stays teacher-defined');
 assert.equal(app.el('#editWorking').value, '60', 'the IA1 data test is 60 minutes');
 
+// --- a school-set FIA timing is remembered --------------------------------
+// Units 1-2 timings are not prescribed, so an override sticks until Restore sample.
+const fia = boot();
+fia.read('editingExamIndex = 0;');
+fia.read('applyPresetChoice("qcaa-biology-fia")');
+assert.equal(fia.el('#editWorking').value, '60', 'the Biology FIA starts by mirroring its IA1 data test');
+
+// Saving a changed working time records it against that FIA.
+fia.read('rememberPresetOverride({ presetId: "qcaa-biology-fia", perusal: 10, working: 75 })');
+assert.deepEqual(
+  JSON.parse(fia.read('JSON.stringify(presetOverrides)')),
+  { 'qcaa-biology-fia': { perusal: 10, working: 75 } },
+  'the changed FIA timing is remembered',
+);
+
+// Choosing that FIA again brings the remembered timing back, not the mirror.
+fia.read('applyPresetChoice("qcaa-biology-fia")');
+assert.equal(fia.el('#editWorking').value, '75', 'the remembered working time is reapplied');
+assert.equal(fia.el('#editPerusal').value, '10', 'the remembered perusal is reapplied');
+
+// Setting it back to the mirrored values forgets the override rather than storing a
+// redundant copy.
+fia.read('rememberPresetOverride({ presetId: "qcaa-biology-fia", perusal: 5, working: 60 })');
+assert.deepEqual(JSON.parse(fia.read('JSON.stringify(presetOverrides)')), {}, 'matching the mirror clears the override');
+
+// A syllabus-prescribed instrument is never overridden this way.
+fia.read('rememberPresetOverride({ presetId: "qcaa-biology-ea-p1", perusal: 5, working: 120 })');
+assert.deepEqual(JSON.parse(fia.read('JSON.stringify(presetOverrides)')), {}, 'sourced QCAA timings are not overridable');
+fia.read('applyPresetChoice("qcaa-biology-ea-p1")');
+assert.equal(fia.el('#editWorking').value, '90', 'the EA paper still comes straight from the syllabus');
+
 console.log('All quick-edit checks passed.');

@@ -25,6 +25,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_atsi_studies_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Short response" },
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -36,6 +37,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_accounting_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA2 Combination response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA2 Combination response" },
       { key: "ia2", type: "IA", label: "IA2 Combination response", timing: "planning", perusal: 15, working: 120 },
       { key: "ia3", type: "IA", label: "IA3 Combination response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
@@ -48,6 +50,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_aerospace_sys_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA2 Combination response)", timing: "perusal", perusal: 5, working: 120, mirrors: "IA2 Combination response" },
       { key: "ia2", type: "IA", label: "IA2 Combination response", timing: "perusal", perusal: 5, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
     ],
@@ -59,6 +62,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_agricultural_science_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Data test)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Data test" },
       { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
@@ -71,6 +75,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_ancient_history_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Extended response" },
       { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -82,6 +87,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_biology_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Data test)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Data test" },
       { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
@@ -94,6 +100,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_business_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Combination response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Combination response" },
       { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -105,6 +112,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_chemistry_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Page 45 of 59 C onditions)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Page 45 of 59 C onditions" },
       { key: "ia1-page-45-of-59-c-onditions", type: "IA", label: "IA1 Page 45 of 59 C onditions", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
@@ -117,6 +125,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_chinese_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA1 Short response" },
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
@@ -130,6 +139,7 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_chinese_ext_26_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "planning", perusal: 10, working: 80, mirrors: "IA1 Short response" },
       { key: "ia1-short-response", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
@@ -142,6 +152,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_dance_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -152,6 +163,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_design_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Design challenge)", timing: "planning", perusal: 15, working: 90, mirrors: "IA1 Design challenge" },
       { key: "ia1", type: "IA", label: "IA1 Design challenge", timing: "planning", perusal: 15, working: 90 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -163,6 +175,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (February 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_digital_solutions_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "perusal", perusal: 5, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
     ],
   },
@@ -173,6 +186,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_drama_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -183,6 +197,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_earth_science_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Data test)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Data test" },
       { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
@@ -195,6 +210,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_economics_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Combination response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Combination response" },
       { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
       { key: "ia3", type: "IA", label: "IA3 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
@@ -207,6 +223,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_engineering_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA2 Combination response)", timing: "perusal", perusal: 5, working: 120, mirrors: "IA2 Combination response" },
       { key: "ia2", type: "IA", label: "IA2 Combination response", timing: "perusal", perusal: 5, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
     ],
@@ -218,6 +235,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_english_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA3 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA3 Extended response" },
       { key: "ia3", type: "IA", label: "IA3 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -229,6 +247,7 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_english_lit_ext_26_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 30, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 30, working: 120 },
     ],
   },
@@ -239,6 +258,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_english_add_lang_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Extended response" },
       { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -250,6 +270,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_film_tv_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -260,6 +281,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_food_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Combination response)", timing: "perusal", perusal: 5, working: 120, mirrors: "IA1 Combination response" },
       { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "perusal", perusal: 5, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
     ],
@@ -271,6 +293,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_french_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA1 Short response" },
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
@@ -284,6 +307,7 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_french_ext_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "planning", perusal: 10, working: 80, mirrors: "IA1 Short response" },
       { key: "ia1-short-response", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
@@ -296,6 +320,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_general_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA2 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA2 Short response" },
       { key: "ia2", type: "IA", label: "IA2 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia3", type: "IA", label: "IA3 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
@@ -309,6 +334,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_geography_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Combination response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Combination response" },
       { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -320,6 +346,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_german_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA1 Short response" },
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
@@ -333,6 +360,7 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_german_ext_26_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "planning", perusal: 10, working: 80, mirrors: "IA1 Short response" },
       { key: "ia1-short-response", type: "IA", label: "IA1 Short response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
@@ -345,6 +373,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_health_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA2 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA2 Extended response" },
       { key: "ia2", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -356,6 +385,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_italian_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA1 Short response" },
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
@@ -369,6 +399,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_japanese_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA1 Short response" },
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
@@ -382,6 +413,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_legal_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Combination response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Combination response" },
       { key: "ia1", type: "IA", label: "IA1 Combination response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -393,6 +425,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_literature_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Extended response" },
       { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -404,6 +437,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_marine_science_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Data test)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Data test" },
       { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
@@ -416,6 +450,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_methods_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA2 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA2 Short response" },
       { key: "ia2", type: "IA", label: "IA2 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia3", type: "IA", label: "IA3 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
@@ -429,6 +464,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_modern_history_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Extended response" },
       { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -440,6 +476,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -450,6 +487,7 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_ext_26_comp_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -460,6 +498,7 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_ext_26_music_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -470,6 +509,7 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_ext_26_perf_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA Conditio ns)", timing: "planning", perusal: 20, working: 120, mirrors: "EA Conditio ns" },
       { key: "ea-conditio-ns", type: "EA", label: "EA Conditio ns", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -480,6 +520,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_philosophy_reason_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Extended response" },
       { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -491,6 +532,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_pe_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "perusal", perusal: 5, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
     ],
   },
@@ -501,6 +543,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_physics_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Data test)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Data test" },
       { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
@@ -513,6 +556,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_psychology_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Data test)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Data test" },
       { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
@@ -525,6 +569,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_spanish_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA1 Short response" },
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
@@ -538,6 +583,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA2 Short response)", timing: "perusal", perusal: 5, working: 90, mirrors: "IA2 Short response" },
       { key: "ia2", type: "IA", label: "IA2 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia3", type: "IA", label: "IA3 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
@@ -551,6 +597,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.4 (March 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_study_religion_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Extended response)", timing: "planning", perusal: 15, working: 120, mirrors: "IA1 Extended response" },
       { key: "ia1", type: "IA", label: "IA1 Extended response", timing: "planning", perusal: 15, working: 120 },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 15, working: 120 },
     ],
@@ -562,6 +609,7 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_visual_art_25_syll.pdf",
     instruments: [
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
       { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
@@ -585,7 +633,9 @@ const QCAA_PRESETS = QCAA_SUBJECTS.flatMap(subject => subject.instruments.map(in
     leavingPolicy: isExternal ? "qcaa-ea-2025" : "teacher",
     eaScheduledStart: "09:00",
     colour: subject.colour,
-    source: `${subject.subject} ${subject.version}`,
+    source: instrument.mirrors
+      ? `Units 1–2 school-developed · timing mirrors ${instrument.mirrors} · ${subject.subject} ${subject.version}`
+      : `${subject.subject} ${subject.version}`,
     sourceUrl: subject.sourceUrl,
   };
 }));

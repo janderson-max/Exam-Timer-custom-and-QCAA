@@ -8,6 +8,7 @@ const STORAGE_KEY = "exam-room-timer-session-v1";
 const CUSTOM_PRESETS_KEY = "exam-room-timer-custom-presets-v1";
 const SESSION_STORAGE_VERSION = 1;
 const DISPLAY_PREFS_KEY = "exam-room-timer-display-v1";
+const PRESET_OVERRIDES_KEY = "exam-room-timer-preset-overrides-v1";
 const CLOCK_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5.6V12l4.5 2.7" /><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" /></svg>`;
 const EDIT_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.7 6.3l3 3M5 19h3l9.4-9.4a1.6 1.6 0 0 0 0-2.2l-.8-.8a1.6 1.6 0 0 0-2.2 0L5 16z" /></svg>`;
 const PAUSE_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><rect x="8.4" y="7.2" width="2.6" height="9.6" rx="1" /><rect x="13" y="7.2" width="2.6" height="9.6" rx="1" /></svg>`;
@@ -15,6 +16,7 @@ let exams = structuredClone(SAMPLE_EXAMS);
 let customPresets = loadCustomPresets();
 let sessionDate = dateKey(new Date());
 let hideTimerSeconds = loadDisplayPrefs();
+let presetOverrides = loadPresetOverrides();
 
 const examGrid = document.querySelector("#examGrid");
 const editors = document.querySelector("#examEditors");
@@ -136,6 +138,49 @@ function persistDisplayPrefs(message = "Timer display preference saved on this b
   } catch {
     document.querySelector("#sessionSaveStatus").textContent = "Browser storage is unavailable; keep this tab open.";
   }
+}
+
+// Units 1-2 timings are school-set rather than prescribed, so once a supervisor
+// changes an FIA's perusal or working time that choice is remembered and reapplied
+// the next time the same FIA is chosen. Restore sample clears them.
+function loadPresetOverrides() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PRESET_OVERRIDES_KEY));
+    return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistPresetOverrides() {
+  try {
+    localStorage.setItem(PRESET_OVERRIDES_KEY, JSON.stringify(presetOverrides));
+  } catch {
+    // Storage is unavailable; the override still applies for this session.
+  }
+}
+
+function overridablePreset(presetId) {
+  const preset = QCAA_PRESETS.find(item => item.id === presetId);
+  return preset && preset.type === "FIA" ? preset : null;
+}
+
+function presetWithOverrides(preset) {
+  const override = presetOverrides[preset.id];
+  if (!override || !overridablePreset(preset.id)) return preset;
+  return { ...preset, perusal: override.perusal, working: override.working };
+}
+
+function rememberPresetOverride(exam) {
+  const preset = overridablePreset(exam?.presetId);
+  if (!preset) return;
+  const perusal = Number(exam.perusal);
+  const working = Number(exam.working);
+  if (!Number.isFinite(perusal) || !Number.isFinite(working)) return;
+
+  if (perusal === preset.perusal && working === preset.working) delete presetOverrides[preset.id];
+  else presetOverrides[preset.id] = { perusal, working };
+  persistPresetOverrides();
 }
 
 function loadCustomPresets() {
@@ -298,7 +343,7 @@ function renderCards() {
     const selectedAaraRates = aaraRates(exam);
     const isPaused = Boolean(exam.runtime?.pausedAt);
     return `
-      <article class="exam-card colour-${exam.colour}" data-exam-index="${index}">
+      <article class="exam-card colour-${exam.colour}${selectedAaraRates.length ? " has-aara" : ""}" data-exam-index="${index}">
         <header class="exam-header">
           <div class="exam-header-actions">
             <button class="exam-clock-button ${isPaused ? "is-paused" : ""}" type="button" data-exam-clock="${index}" aria-label="${isPaused ? "Open controls for paused" : "Pause and control"} ${escapeHtml(exam.name)}" title="${isPaused ? "Timer paused — open controls" : "Pause timer and open controls"}">
@@ -490,7 +535,10 @@ function leavingControls(exam, index) {
 }
 
 function editSourceNote(exam) {
-  return exam.source ? sourceNote(exam) : "Custom / manual exam — timings are not linked to a syllabus.";
+  const note = exam.source ? sourceNote(exam) : "Custom / manual exam — timings are not linked to a syllabus.";
+  return presetOverrides[exam.presetId] && overridablePreset(exam.presetId)
+    ? `${note} · <strong>school-set timing remembered</strong>`
+    : note;
 }
 
 function sourceNote(exam) {
@@ -944,6 +992,7 @@ form.addEventListener("submit", event => {
   }
 
   exams = nextExams.map(exam => normalizeExam(exam));
+  exams.forEach(rememberPresetOverride);
   persistSession();
   renderCards();
   closePanel();
@@ -965,7 +1014,7 @@ function applyPresetChoice(presetId) {
   if (!preset) return;
 
   // A preset may leave a timing unset (teacher-defined); keep what is there already.
-  const selected = structuredClone(preset);
+  const selected = structuredClone(presetWithOverrides(preset));
   ["perusal", "working", "leaveAfterStart", "noLeaveBeforeEnd"].forEach(field => {
     if (selected[field] == null) selected[field] = current[field];
   });
@@ -1108,6 +1157,7 @@ examEditForm.addEventListener("submit", event => {
     return;
   }
 
+  rememberPresetOverride(draft);
   const previousRuntime = exam.runtime;
   exams[editingExamIndex] = draft;
   rebaseRuntime(draft, previousRuntime);
@@ -1195,7 +1245,7 @@ editors.addEventListener("change", event => {
       const preset = [...QCAA_PRESETS, ...customPresets].find(item => item.id === presetId);
       if (preset) {
         const current = nextExams[index];
-        const selected = structuredClone(preset);
+        const selected = structuredClone(presetWithOverrides(preset));
         ["perusal", "working", "leaveAfterStart", "noLeaveBeforeEnd"].forEach(field => {
           if (selected[field] == null) selected[field] = current[field];
         });
@@ -1279,6 +1329,8 @@ document.querySelector("#resetButton").addEventListener("click", () => resetDial
 document.querySelector("#cancelReset").addEventListener("click", () => resetDialog.close());
 document.querySelector("#confirmReset").addEventListener("click", () => {
   exams = structuredClone(SAMPLE_EXAMS);
+  presetOverrides = {};
+  persistPresetOverrides();
   sessionDate = dateKey(new Date());
   document.querySelector("#startTimeChoice").value = "manual";
   document.querySelector("#startTimeChoice").dataset.applied = "true";
