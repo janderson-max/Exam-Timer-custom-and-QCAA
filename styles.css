@@ -155,7 +155,10 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .setup-panel.open { transform: translateX(0); }
 .panel-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .panel-header h2 { margin: 4px 0 0; }
-.icon-button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--canvas); font-size: 1.7rem; }
+.icon-button { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--canvas); color: var(--muted); line-height: 0; }
+.icon-button svg { display: block; width: 20px; height: 20px; }
+.icon-button:hover { background: #e3eaf2; color: var(--ink); }
+.icon-button:focus-visible { outline: 3px solid rgba(38, 117, 201, .45); outline-offset: 2px; }
 .panel-note { padding: 12px; border-radius: 6px; background: var(--amber-soft); color: #705015; font-size: .84rem; }
 .scrim { position: fixed; z-index: 10; inset: 0; background: rgba(10, 19, 36, .5); }
 form > label { display: grid; gap: 5px; margin: 18px 0; font-size: .8rem; font-weight: 700; }
