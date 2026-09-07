@@ -8,6 +8,8 @@ const STORAGE_KEY = "exam-room-timer-session-v1";
 const CUSTOM_PRESETS_KEY = "exam-room-timer-custom-presets-v1";
 const SESSION_STORAGE_VERSION = 1;
 const DISPLAY_PREFS_KEY = "exam-room-timer-display-v1";
+const CLOCK_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 6.6V12l3.9 2.4" /></svg>`;
+const PAUSE_ICON = `<svg class="exam-clock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><rect x="7.1" y="5" width="3.7" height="14" rx="1.3" /><rect x="13.2" y="5" width="3.7" height="14" rx="1.3" /></svg>`;
 let exams = structuredClone(SAMPLE_EXAMS);
 let customPresets = loadCustomPresets();
 let sessionDate = dateKey(new Date());
@@ -274,7 +276,7 @@ function renderCards() {
       <article class="exam-card colour-${exam.colour} ${index === 0 ? "current" : ""}" data-exam-index="${index}">
         <header class="exam-header">
           <button class="exam-clock-button ${isPaused ? "is-paused" : ""}" type="button" data-exam-clock="${index}" aria-label="${isPaused ? "Open controls for paused" : "Pause and control"} ${escapeHtml(exam.name)}" title="${isPaused ? "Timer paused — open controls" : "Pause timer and open controls"}">
-            <span aria-hidden="true">${isPaused ? "Ⅱ" : "◷"}</span>
+            ${isPaused ? PAUSE_ICON : CLOCK_ICON}
           </button>
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}</span>
           <h3>${escapeHtml(exam.name)}</h3>
