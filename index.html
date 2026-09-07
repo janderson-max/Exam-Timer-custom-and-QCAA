@@ -162,7 +162,15 @@
         </div>
         <p class="edit-running-note" id="examEditRunningNote" hidden></p>
         <div class="edit-grid">
-          <label class="wide">Subject / preset<select id="editPreset" name="editPreset"></select></label>
+          <div class="wide combo-field">
+            <label for="editPresetInput">Subject / preset</label>
+            <div class="combo" id="editPresetCombo">
+              <input id="editPresetInput" type="text" role="combobox" aria-expanded="false" aria-controls="editPresetList"
+                aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Type to search subjects…" />
+              <ul class="combo-list" id="editPresetList" role="listbox" aria-label="Subjects and presets" hidden></ul>
+            </div>
+            <input type="hidden" id="editPreset" name="editPreset" value="manual" />
+          </div>
           <p class="edit-preset-source wide" id="editPresetSource"></p>
           <label class="wide">Display name<input id="editName" name="editName" required /></label>
           <label>Category
@@ -181,8 +189,28 @@
             <label><input name="editAara" type="checkbox" value="5" /> 5 min per 30</label>
             <label><input name="editAara" type="checkbox" value="10" /> 10 min per 30</label>
           </fieldset>
+
+          <label>Leaving rules
+            <select id="editLeavingPolicy" name="editLeavingPolicy">
+              <option value="teacher">Teacher-defined</option>
+              <option value="qcaa-ea-2025">QCAA EA June 2025</option>
+            </select>
+          </label>
+          <label id="editEaSessionField">Scheduled EA session
+            <select id="editEaScheduledStart" name="editEaScheduledStart">
+              <option value="09:00">Morning — 9:00 am</option>
+              <option value="12:30">Afternoon — 12:30 pm</option>
+            </select>
+          </label>
+          <label id="editLeaveAfterField">Cannot leave for first (session min)<input id="editLeaveAfterStart" name="editLeaveAfterStart" type="number" min="0" max="600" /></label>
+          <label id="editNoLeaveBeforeField">Cannot leave during final (min)<input id="editNoLeaveBeforeEnd" name="editNoLeaveBeforeEnd" type="number" min="0" max="600" /></label>
+          <p class="field-note wide" id="editEaLeavingNote" hidden>Leaving is blocked until 40 minutes after the scheduled start and during the final 10 minutes.</p>
+          <div class="leaving-preview wide">
+            <span>Calculated permitted leaving window</span>
+            <strong id="editLeavingPreview">Calculating…</strong>
+          </div>
         </div>
-        <p class="edit-note">Leaving rules and start time stay in <strong>Setup exams</strong>.</p>
+        <p class="edit-note">The permitted leaving window is supervisor information and is not shown on the room display. Session start time stays in <strong>Setup exams</strong>.</p>
         <div class="dialog-actions edit-actions">
           <button class="button button-secondary" id="resetExamEdit" type="button">Reset changes</button>
           <span class="edit-actions-gap"></span>

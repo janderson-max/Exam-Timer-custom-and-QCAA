@@ -222,6 +222,30 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
 .edit-grid > label { display: grid; gap: 5px; margin: 0 0 14px; font-size: .8rem; font-weight: 700; }
 .edit-grid .wide { grid-column: 1 / -1; }
 .edit-running-note { margin: 16px 0 0; padding: 11px 13px; border-left: 4px solid var(--amber); border-radius: 5px; background: var(--amber-soft); color: #684b13; font-size: .84rem; line-height: 1.45; }
+.combo-field { display: grid; gap: 5px; margin: 0 0 14px; font-size: .8rem; font-weight: 700; }
+.combo { position: relative; }
+.combo-list {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid #bfc8d5;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 14px 34px rgba(10,19,36,.18);
+  list-style: none;
+}
+.combo-list[hidden] { display: none; }
+.combo-group { padding: 8px 8px 3px; color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.combo-option { padding: 7px 9px; border-radius: 5px; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.combo-option[aria-selected="true"] { font-weight: 800; }
+.combo-option.is-active { background: var(--blue-soft); color: #14477e; }
+.combo-empty { padding: 10px 9px; color: var(--muted); font-size: .82rem; font-weight: 600; }
 .edit-actions { align-items: center; }
 .edit-actions .button:disabled { border-color: var(--line); background: #f4f5f7; color: #9aa2b1; cursor: not-allowed; }
 .edit-actions-gap { flex: 1 1 auto; }

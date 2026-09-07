@@ -617,15 +617,22 @@ function escapeHtml(value) {
 
 // The form's current values, in the same shape as savedExamSnapshot, so the two can
 // be compared to tell whether anything has actually been edited.
+// A blank number field reads as "", so compare against that rather than "null".
+const fieldText = value => (value === null || value === undefined ? "" : String(value));
+
 function examEditSnapshot() {
   return JSON.stringify({
     presetId: document.querySelector("#editPreset").value,
     name: document.querySelector("#editName").value,
     type: document.querySelector("#editType").value,
-    perusal: String(document.querySelector("#editPerusal").value),
-    working: String(document.querySelector("#editWorking").value),
+    perusal: fieldText(document.querySelector("#editPerusal").value),
+    working: fieldText(document.querySelector("#editWorking").value),
     colour: document.querySelector("#editColour").value,
     aara: [...examEditForm.querySelectorAll('input[name="editAara"]:checked')].map(input => input.value),
+    leavingPolicy: document.querySelector("#editLeavingPolicy").value,
+    leaveAfterStart: fieldText(document.querySelector("#editLeaveAfterStart").value),
+    noLeaveBeforeEnd: fieldText(document.querySelector("#editNoLeaveBeforeEnd").value),
+    eaScheduledStart: document.querySelector("#editEaScheduledStart").value,
   });
 }
 
@@ -634,11 +641,153 @@ function savedExamSnapshot(exam) {
     presetId: exam.presetId || "manual",
     name: exam.name,
     type: ["Custom", "FIA", "IA", "EA"].includes(exam.type) ? exam.type : "Custom",
-    perusal: String(exam.perusal),
-    working: String(exam.working),
+    perusal: fieldText(exam.perusal),
+    working: fieldText(exam.working),
     colour: exam.colour,
     aara: aaraRates(exam).map(String),
+    leavingPolicy: VALID_LEAVING_POLICIES.has(exam.leavingPolicy) ? exam.leavingPolicy : "teacher",
+    leaveAfterStart: fieldText(exam.leaveAfterStart),
+    noLeaveBeforeEnd: fieldText(exam.noLeaveBeforeEnd),
+    eaScheduledStart: exam.eaScheduledStart || "09:00",
   });
+}
+
+// --- subject / preset combobox --------------------------------------------
+// A plain <select> holding 115 instruments can only be navigated by first letter, so
+// the picker is a text input over a filtered listbox. #editPreset keeps the chosen id.
+let comboFilter = "";
+let comboMatches = [];
+let comboActive = -1;
+
+function presetChoices() {
+  return [
+    { id: "manual", group: "", text: "Custom / manual exam", display: "Custom / manual exam" },
+    ...QCAA_PRESETS.map(preset => ({
+      id: preset.id,
+      group: preset.subject,
+      text: preset.label || preset.name,
+      display: `${preset.subject} — ${preset.label || preset.name}`,
+    })),
+    ...customPresets.map(preset => ({
+      id: preset.id,
+      group: "Saved custom exams",
+      text: preset.name,
+      display: preset.name,
+    })),
+  ];
+}
+
+function comboDisplayFor(presetId) {
+  const choice = presetChoices().find(item => item.id === presetId);
+  return choice ? choice.display : "Custom / manual exam";
+}
+
+function renderComboList() {
+  const list = document.querySelector("#editPresetList");
+  const needle = comboFilter.trim().toLowerCase();
+  // Every whitespace-separated term must appear, so "bio ea" finds Biology EA papers.
+  const terms = needle ? needle.split(/\s+/) : [];
+  comboMatches = presetChoices().filter(choice =>
+    terms.every(term => choice.display.toLowerCase().includes(term)));
+
+  if (!comboMatches.length) {
+    list.innerHTML = '<li class="combo-empty">No matching subject</li>';
+    return;
+  }
+
+  const selectedId = document.querySelector("#editPreset").value;
+  let html = "";
+  let group = null;
+  comboMatches.forEach((choice, index) => {
+    if (choice.group !== group) {
+      group = choice.group;
+      if (group) html += `<li class="combo-group" role="presentation">${escapeHtml(group)}</li>`;
+    }
+    html += `<li class="combo-option${index === comboActive ? " is-active" : ""}" role="option"`
+      + ` id="editPresetOption-${index}" data-combo-index="${index}"`
+      + ` aria-selected="${choice.id === selectedId}">${escapeHtml(choice.text)}</li>`;
+  });
+  list.innerHTML = html;
+}
+
+function openCombo() {
+  renderComboList();
+  document.querySelector("#editPresetList").hidden = false;
+  document.querySelector("#editPresetInput").setAttribute("aria-expanded", "true");
+}
+
+function closeCombo() {
+  comboActive = -1;
+  const input = document.querySelector("#editPresetInput");
+  document.querySelector("#editPresetList").hidden = true;
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+}
+
+function setComboActive(index) {
+  if (!comboMatches.length) return;
+  comboActive = (index + comboMatches.length) % comboMatches.length;
+  renderComboList();
+  const option = document.querySelector(`#editPresetOption-${comboActive}`);
+  if (option) {
+    option.scrollIntoView({ block: "nearest" });
+    document.querySelector("#editPresetInput").setAttribute("aria-activedescendant", option.id);
+  }
+}
+
+// --- leaving rules ---------------------------------------------------------
+function editFieldNumber(selector) {
+  const value = document.querySelector(selector).value;
+  return value === "" ? null : Number(value);
+}
+
+// The exam as the dialog currently describes it, before validation.
+function examEditDraft() {
+  return {
+    ...(exams[editingExamIndex] || {}),
+    ...(editPresetPatch || {}),
+    name: document.querySelector("#editName").value,
+    type: document.querySelector("#editType").value,
+    perusal: editFieldNumber("#editPerusal"),
+    working: editFieldNumber("#editWorking"),
+    aaraOptions: [...examEditForm.querySelectorAll('input[name="editAara"]:checked')].map(input => Number(input.value)),
+    colour: document.querySelector("#editColour").value,
+    leavingPolicy: document.querySelector("#editLeavingPolicy").value,
+    leaveAfterStart: editFieldNumber("#editLeaveAfterStart"),
+    noLeaveBeforeEnd: editFieldNumber("#editNoLeaveBeforeEnd"),
+    eaScheduledStart: document.querySelector("#editEaScheduledStart").value,
+  };
+}
+
+function updateEditLeavingPreview() {
+  const preview = document.querySelector("#editLeavingPreview");
+  const draft = examEditDraft();
+  const complete = [draft.perusal, draft.working, draft.leaveAfterStart, draft.noLeaveBeforeEnd].every(Number.isFinite);
+  if (!complete) {
+    preview.textContent = "Complete the timing fields";
+    preview.classList.add("invalid-window");
+    return;
+  }
+
+  const times = examTimes(normalizeExam(draft));
+  if (times.leavingStartMs > times.leavingEndMs) {
+    preview.textContent = "No valid leaving window";
+    preview.classList.add("invalid-window");
+    return;
+  }
+  preview.textContent = `${formatExamTime(new Date(times.leavingStartMs))} to ${formatExamTime(new Date(times.leavingEndMs))}`;
+  preview.classList.remove("invalid-window");
+}
+
+// The QCAA policy fixes its own window, so its two figures are shown as a note
+// rather than as editable fields.
+function syncEditLeavingFields() {
+  const isQcaa = document.querySelector("#editLeavingPolicy").value === "qcaa-ea-2025";
+  document.querySelector("#editEaSessionField").hidden = !isQcaa;
+  document.querySelector("#editEaLeavingNote").hidden = !isQcaa;
+  document.querySelector("#editLeaveAfterField").hidden = isQcaa;
+  document.querySelector("#editNoLeaveBeforeField").hidden = isQcaa;
+  updateEditLeavingPreview();
 }
 
 function refreshExamEditReset() {
@@ -653,8 +802,11 @@ function populateExamEdit(index) {
   if (!exam) return;
 
   editPresetPatch = null;
-  const presetSelect = document.querySelector("#editPreset");
-  presetSelect.innerHTML = presetOptions(exam.presetId || "manual");
+  const presetId = exam.presetId || "manual";
+  document.querySelector("#editPreset").value = presetId;
+  document.querySelector("#editPresetInput").value = comboDisplayFor(presetId);
+  comboFilter = "";
+  closeCombo();
   document.querySelector("#editPresetSource").innerHTML = editSourceNote(exam);
 
   document.querySelector("#examEditTitle").textContent = `Exam ${index + 1} · ${exam.name}`;
@@ -669,6 +821,12 @@ function populateExamEdit(index) {
   examEditForm.querySelectorAll('input[name="editAara"]').forEach(input => {
     input.checked = rates.includes(Number(input.value));
   });
+
+  document.querySelector("#editLeavingPolicy").value = VALID_LEAVING_POLICIES.has(exam.leavingPolicy) ? exam.leavingPolicy : "teacher";
+  document.querySelector("#editLeaveAfterStart").value = fieldText(exam.leaveAfterStart);
+  document.querySelector("#editNoLeaveBeforeEnd").value = fieldText(exam.noLeaveBeforeEnd);
+  document.querySelector("#editEaScheduledStart").value = exam.eaScheduledStart === "12:30" ? "12:30" : "09:00";
+  syncEditLeavingFields();
 
   // A running timer keeps its own start times, so say what a change will actually do.
   const note = document.querySelector("#examEditRunningNote");
@@ -774,13 +932,15 @@ form.addEventListener("submit", event => {
   closePanel();
 });
 
-document.querySelector("#editPreset").addEventListener("change", event => {
-  const presetId = event.currentTarget.value;
-  const current = exams[editingExamIndex];
+function applyPresetChoice(presetId) {
+  const current = exams[editingExamIndex] || {};
+  document.querySelector("#editPreset").value = presetId;
+  document.querySelector("#editPresetInput").value = comboDisplayFor(presetId);
 
   if (presetId === "manual") {
     editPresetPatch = { presetId: "manual", source: "", sourceUrl: "" };
     document.querySelector("#editPresetSource").innerHTML = editSourceNote({ presetId: "manual" });
+    refreshExamEditReset();
     return;
   }
 
@@ -792,7 +952,9 @@ document.querySelector("#editPreset").addEventListener("change", event => {
   ["perusal", "working", "leaveAfterStart", "noLeaveBeforeEnd"].forEach(field => {
     if (selected[field] == null) selected[field] = current[field];
   });
-  editPresetPatch = { ...selected, presetId };
+  // Only provenance is staged now; everything else the preset carries is shown in the
+  // form, so an edit made afterwards wins.
+  editPresetPatch = { presetId, id: selected.id, source: selected.source, sourceUrl: selected.sourceUrl };
 
   document.querySelector("#editName").value = selected.name;
   document.querySelector("#editType").value = ["Custom", "FIA", "IA", "EA"].includes(selected.type) ? selected.type : "Custom";
@@ -803,9 +965,79 @@ document.querySelector("#editPreset").addEventListener("change", event => {
   examEditForm.querySelectorAll('input[name="editAara"]').forEach(input => {
     input.checked = presetRates.includes(Number(input.value));
   });
+  document.querySelector("#editLeavingPolicy").value = VALID_LEAVING_POLICIES.has(selected.leavingPolicy) ? selected.leavingPolicy : "teacher";
+  document.querySelector("#editLeaveAfterStart").value = fieldText(selected.leaveAfterStart);
+  document.querySelector("#editNoLeaveBeforeEnd").value = fieldText(selected.noLeaveBeforeEnd);
+  document.querySelector("#editEaScheduledStart").value = selected.eaScheduledStart === "12:30" ? "12:30" : "09:00";
+
   document.querySelector("#editPresetSource").innerHTML = editSourceNote(selected);
+  syncEditLeavingFields();
+  refreshExamEditReset();
+}
+
+const presetInput = document.querySelector("#editPresetInput");
+presetInput.addEventListener("focus", () => {
+  comboFilter = "";
+  presetInput.select();
+  openCombo();
+});
+presetInput.addEventListener("input", () => {
+  comboFilter = presetInput.value;
+  comboActive = -1;
+  openCombo();
+});
+presetInput.addEventListener("keydown", event => {
+  const isOpen = !document.querySelector("#editPresetList").hidden;
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    if (!isOpen) openCombo();
+    setComboActive(comboActive + 1);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    if (!isOpen) openCombo();
+    setComboActive(comboActive - 1);
+  } else if (event.key === "Enter") {
+    // Never let a search term submit the form.
+    if (isOpen) {
+      event.preventDefault();
+      const choice = comboMatches[comboActive] || (comboMatches.length === 1 ? comboMatches[0] : null);
+      if (choice) applyPresetChoice(choice.id);
+      closeCombo();
+    }
+  } else if (event.key === "Escape" && isOpen) {
+    // Close the list without also closing the dialog.
+    event.preventDefault();
+    event.stopPropagation();
+    presetInput.value = comboDisplayFor(document.querySelector("#editPreset").value);
+    closeCombo();
+  }
+});
+presetInput.addEventListener("blur", () => {
+  presetInput.value = comboDisplayFor(document.querySelector("#editPreset").value);
+  closeCombo();
+});
+
+const presetList = document.querySelector("#editPresetList");
+// Keep focus on the input so blur does not close the list before the click lands.
+presetList.addEventListener("mousedown", event => event.preventDefault());
+presetList.addEventListener("click", event => {
+  const option = event.target.closest("[data-combo-index]");
+  if (!option) return;
+  const choice = comboMatches[Number(option.dataset.comboIndex)];
+  if (choice) applyPresetChoice(choice.id);
+  closeCombo();
+});
+
+document.querySelector("#editLeavingPolicy").addEventListener("change", event => {
+  if (event.currentTarget.value === "qcaa-ea-2025") {
+    document.querySelector("#editLeaveAfterStart").value = QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart;
+    document.querySelector("#editNoLeaveBeforeEnd").value = QCAA_EA_DIRECTIONS.finalMinutes;
+  }
+  syncEditLeavingFields();
   refreshExamEditReset();
 });
+examEditForm.addEventListener("input", updateEditLeavingPreview);
+document.querySelector("#editEaScheduledStart").addEventListener("change", updateEditLeavingPreview);
 
 document.querySelector("#resetExamEdit").addEventListener("click", () => {
   populateExamEdit(editingExamIndex);
@@ -821,27 +1053,39 @@ examEditForm.addEventListener("submit", event => {
   const exam = exams[editingExamIndex];
   if (!exam) return;
 
-  const draft = normalizeExam({
-    ...exam,
-    ...(editPresetPatch || {}),
-    name: document.querySelector("#editName").value,
-    type: document.querySelector("#editType").value,
-    perusal: Number(document.querySelector("#editPerusal").value),
-    working: Number(document.querySelector("#editWorking").value),
-    aaraOptions: [...examEditForm.querySelectorAll('input[name="editAara"]:checked')].map(input => Number(input.value)),
-    colour: document.querySelector("#editColour").value,
-  });
+  const raw = examEditDraft();
 
-  const problem = examProblem(draft);
+  const problem = examProblem(raw);
   if (problem) {
-    const field = { name: "#editName", perusal: "#editPerusal", working: "#editWorking" }[problem.field];
+    const field = {
+      name: "#editName",
+      perusal: "#editPerusal",
+      working: "#editWorking",
+      leaveAfterStart: "#editLeaveAfterStart",
+      noLeaveBeforeEnd: "#editNoLeaveBeforeEnd",
+      leavingPolicy: "#editLeavingPolicy",
+    }[problem.field];
     const input = field && document.querySelector(field);
     if (input) {
       const clear = () => input.setCustomValidity("");
       input.setCustomValidity(problem.message);
       input.reportValidity();
       input.addEventListener("input", clear, { once: true });
+      input.addEventListener("change", clear, { once: true });
     }
+    return;
+  }
+
+  const draft = normalizeExam(raw);
+
+  // Same rule the setup panel applies: the two restricted periods must leave a gap.
+  if (draft.leavingPolicy === "teacher"
+    && draft.leaveAfterStart + draft.noLeaveBeforeEnd > draft.perusal + draft.working) {
+    const input = document.querySelector("#editNoLeaveBeforeEnd");
+    const clear = () => input.setCustomValidity("");
+    input.setCustomValidity("The two restricted periods overlap, so there would be no permitted leaving window.");
+    input.reportValidity();
+    input.addEventListener("input", clear, { once: true });
     return;
   }
 
