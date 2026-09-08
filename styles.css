@@ -173,7 +173,7 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .phase-finished { background: var(--red-soft); }
 .phase-finished .phase-label { background: var(--red); }
 .phase-finished small { color: #82434a; }
-.timeline { padding: 8px 20px 13px; flex: 1 1 auto; display: grid; grid-template-rows: repeat(4, 1fr); overflow: hidden; }
+.timeline { padding: 8px 20px 13px; flex: 1 1 auto; display: grid; grid-auto-rows: 1fr; overflow: hidden; }
 .timeline-row { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; overflow: hidden; border-bottom: 1px solid #edf0f4; }
 .timeline-row:last-child { border: 0; }
 .timeline-row span { color: var(--muted); font-size: .82rem; }
@@ -388,7 +388,7 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   :fullscreen .phase strong { margin-top: 4px; font-size: clamp(2.5rem, 4.4vw, 4.6rem); }
   :fullscreen .exam-grid[data-count="1"] .phase strong { font-size: clamp(4rem, 9.5vw, 11rem); }
   :fullscreen .phase small { margin-top: 1px; }
-  :fullscreen .timeline { min-height: 0; padding: 3px 16px; display: grid; grid-template-rows: repeat(4, 1fr); overflow: hidden; }
+  :fullscreen .timeline { min-height: 0; padding: 3px 16px; display: grid; grid-auto-rows: 1fr; overflow: hidden; }
   :fullscreen .timeline-row { min-height: 0; }
   :fullscreen .timeline-row span { font-size: clamp(.8rem, 1vw, 1rem); }
   :fullscreen .timeline-row strong { font-size: clamp(1.15rem, 1.65vw, 1.65rem); }

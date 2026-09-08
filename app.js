@@ -365,7 +365,7 @@ function renderCards() {
           </div>
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}${exam.scheduledPeriodStart ? ` · ${periodLabel(exam.scheduledPeriodStart).toUpperCase()}` : ""}</span>
           <h3>${escapeHtml(exam.name)}</h3>
-          <p>${exam.perusal ? `${exam.perusal} min ${timingWord(exam)}` : `No ${timingWord(exam)}`} · ${durationLabel(exam.working)} working</p>
+          <p>${exam.perusal ? `${exam.perusal} min ${timingWord(exam)} · ` : ""}${durationLabel(exam.working)} working</p>
         </header>
         <div class="phase phase-waiting">
           <span class="phase-label">WAITING</span>
@@ -373,8 +373,10 @@ function renderCards() {
           <small class="countdown-caption">until exam begins</small>
         </div>
         <div class="timeline">
-          <div class="timeline-row"><span>${exam.perusal ? timingTitle(exam) : "Exam begins"}</span><strong>${formatExamTime(new Date(times.startMs))}</strong></div>
-          <div class="timeline-row"><span>Working starts</span><strong>${formatExamTime(new Date(times.workingStartMs))}</strong></div>
+          ${exam.perusal ? `
+          <div class="timeline-row"><span>${timingTitle(exam)}</span><strong>${formatExamTime(new Date(times.startMs))}</strong></div>
+          <div class="timeline-row"><span>Working starts</span><strong>${formatExamTime(new Date(times.workingStartMs))}</strong></div>` : `
+          <div class="timeline-row"><span>Exam begins</span><strong>${formatExamTime(new Date(times.workingStartMs))}</strong></div>`}
           <div class="timeline-row warning"><span>10-minute warning</span><strong>${formatExamTime(new Date(times.warningMs))}</strong></div>
           <div class="timeline-row finish"><span>Working finishes</span><strong>${formatExamTime(new Date(times.finishMs))}</strong></div>
         </div>
@@ -571,7 +573,7 @@ function savedExamSnapshot(exam) {
     noLeaveBeforeEnd: fieldText(exam.noLeaveBeforeEnd),
     eaScheduledStart: exam.eaScheduledStart || "09:00",
     scheduledPeriodStart: exam.scheduledPeriodStart || "",
-    timing: timingWord(exam),
+    timing: timingChoiceFor(exam),
   });
 }
 
@@ -689,7 +691,7 @@ function examEditDraft() {
     noLeaveBeforeEnd: editFieldNumber("#editNoLeaveBeforeEnd"),
     eaScheduledStart: document.querySelector("#editEaScheduledStart").value,
     scheduledPeriodStart: document.querySelector("#editScheduledPeriodStart").value,
-    timing: document.querySelector("#editTiming").value,
+    timing: document.querySelector("#editTiming").value === "planning" ? "planning" : "perusal",
   };
 }
 
@@ -735,9 +737,18 @@ const EDIT_FIELD_SELECTORS = {
   leavingPolicy: "#editLeavingPolicy",
 };
 
+function timingChoiceFor(exam) {
+  return Number(exam?.perusal) > 0 ? timingWord(exam) : "none";
+}
+
 function refreshTimingLabel() {
   const kind = document.querySelector("#editTiming").value;
-  document.querySelector("#editPerusalLabel").textContent = kind === "planning" ? "Planning" : "Perusal";
+  const minutes = document.querySelector("#editPerusal");
+  document.querySelector("#editPerusalLabel").textContent =
+    kind === "none" ? "Reading" : (kind === "planning" ? "Planning" : "Perusal");
+  minutes.disabled = kind === "none";
+  if (kind === "none") minutes.value = 0;
+  else if (Number(minutes.value) === 0) minutes.value = "";
 }
 
 function refreshCustomPresetButtons() {
@@ -768,7 +779,7 @@ function populateExamEdit(index) {
   document.querySelector("#examEditTitle").textContent = `Exam ${index + 1} · ${exam.name}`;
   document.querySelector("#editName").value = exam.name;
   document.querySelector("#editType").value = ["Custom", "FIA", "IA", "EA"].includes(exam.type) ? exam.type : "Custom";
-  document.querySelector("#editTiming").value = timingWord(exam);
+  document.querySelector("#editTiming").value = timingChoiceFor(exam);
   refreshTimingLabel();
   document.querySelector("#editPerusal").value = exam.perusal;
   document.querySelector("#editWorking").value = exam.working;
@@ -902,7 +913,7 @@ function applyPresetChoice(presetId) {
 
   document.querySelector("#editName").value = selected.name;
   document.querySelector("#editType").value = ["Custom", "FIA", "IA", "EA"].includes(selected.type) ? selected.type : "Custom";
-  document.querySelector("#editTiming").value = timingWord(selected);
+  document.querySelector("#editTiming").value = timingChoiceFor(selected);
   refreshTimingLabel();
   document.querySelector("#editPerusal").value = selected.perusal;
   document.querySelector("#editWorking").value = selected.working;
