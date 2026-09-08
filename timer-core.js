@@ -5,6 +5,16 @@
 
 const EXAM_COLOURS = ["blue", "purple", "teal", "orange", "rose"];
 const VALID_LEAVING_POLICIES = new Set(["teacher", "qcaa-ea-2025"]);
+const VALID_TIMING_KINDS = new Set(["perusal", "planning"]);
+
+// "Perusal" is reading only; "planning" allows writing.
+function timingWord(exam) {
+  return exam && exam.timing === "planning" ? "planning" : "perusal";
+}
+
+function timingTitle(exam) {
+  return timingWord(exam) === "planning" ? "Planning" : "Perusal";
+}
 
 // The school timetable, matching the session-start shortcuts in the setup panel
 // (each is the period start plus five minutes).
@@ -58,6 +68,7 @@ function normalizeExam(exam = {}, fallback = {}) {
     presetId: typeof base.presetId === "string" ? base.presetId : "manual",
     colour: typeof base.colour === "string" ? base.colour : EXAM_COLOURS[0],
     eaScheduledStart: typeof base.eaScheduledStart === "string" ? base.eaScheduledStart : "09:00",
+    timing: VALID_TIMING_KINDS.has(base.timing) ? base.timing : "perusal",
     // "" means the exam is not tied to a timetabled period, which is the default and
     // leaves the leaving window measured from when the exam actually starts.
     scheduledPeriodStart: SCHOOL_PERIODS.some(period => period.value === base.scheduledPeriodStart)
@@ -180,6 +191,9 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     EXAM_COLOURS,
     VALID_LEAVING_POLICIES,
+    VALID_TIMING_KINDS,
+    timingWord,
+    timingTitle,
     aaraRates,
     aaraFinishTimes,
     createExamTimeline,

@@ -32,6 +32,28 @@ for (const preset of QCAA_PRESETS) {
   assert.equal(validateExam(normalizeExam(preset)), true, `${where}: should pass the app's exam validation`);
 }
 
+// --- perusal and planning are not the same thing --------------------------
+// Perusal is reading only; planning allows writing. Students are told the
+// difference, so every preset must carry the word its own syllabus uses.
+for (const preset of QCAA_PRESETS) {
+  assert.match(preset.timing, /^(perusal|planning)$/, `${preset.id}: needs a perusal/planning kind`);
+}
+
+// Both are well represented, so a bug defaulting everything one way would show here.
+const perusalCount = QCAA_PRESETS.filter(p => p.timing === 'perusal').length;
+const planningCount = QCAA_PRESETS.filter(p => p.timing === 'planning').length;
+assert.ok(perusalCount > 40 && planningCount > 40, 'both kinds should be well represented');
+
+const timingOf = id => QCAA_PRESETS.find(p => p.id === id)?.timing;
+assert.equal(timingOf('qcaa-biology-ea-p1'), 'perusal', 'the sciences use perusal');
+assert.equal(timingOf('qcaa-general-mathematics-ea-p1'), 'perusal', 'mathematics uses perusal');
+assert.equal(timingOf('qcaa-english-ea'), 'planning', 'English uses planning');
+assert.equal(timingOf('qcaa-modern-history-ea'), 'planning', 'history uses planning');
+
+// A subject can use both: Japanese reads for its IA1 but plans for its IA2 parts.
+assert.equal(timingOf('qcaa-japanese-ia1'), 'perusal', 'Japanese IA1 is perusal');
+assert.equal(timingOf('qcaa-japanese-ia2-extended-response'), 'planning', 'Japanese IA2 is planning');
+
 // --- labels and ids are clean --------------------------------------------
 // The instrument names are read out of the syllabus PDFs, where a heading can run
 // into the page footer. That leaked strings like "IA1 Page 45 of 59 C onditions"

@@ -628,6 +628,7 @@ const QCAA_PRESETS = QCAA_SUBJECTS.flatMap(subject => subject.instruments.map(in
     type: instrument.type,
     perusal: instrument.perusal,
     working: instrument.working,
+    timing: instrument.timing,
     aaraOptions: [],
     leaveAfterStart: isExternal ? QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart : null,
     noLeaveBeforeEnd: isExternal ? QCAA_EA_DIRECTIONS.finalMinutes : null,

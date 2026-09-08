@@ -365,7 +365,7 @@ function renderCards() {
           </div>
           <span class="exam-number">EXAM ${index + 1} · ${exam.type.toUpperCase()}${exam.scheduledPeriodStart ? ` · ${periodLabel(exam.scheduledPeriodStart).toUpperCase()}` : ""}</span>
           <h3>${escapeHtml(exam.name)}</h3>
-          <p>${exam.perusal ? `${exam.perusal} min perusal / planning` : "No perusal / planning"} · ${durationLabel(exam.working)} working</p>
+          <p>${exam.perusal ? `${exam.perusal} min ${timingWord(exam)}` : `No ${timingWord(exam)}`} · ${durationLabel(exam.working)} working</p>
         </header>
         <div class="phase phase-waiting">
           <span class="phase-label">WAITING</span>
@@ -373,7 +373,7 @@ function renderCards() {
           <small class="countdown-caption">until exam begins</small>
         </div>
         <div class="timeline">
-          <div class="timeline-row"><span>${exam.perusal ? "Perusal / planning" : "Exam begins"}</span><strong>${formatExamTime(new Date(times.startMs))}</strong></div>
+          <div class="timeline-row"><span>${exam.perusal ? timingTitle(exam) : "Exam begins"}</span><strong>${formatExamTime(new Date(times.startMs))}</strong></div>
           <div class="timeline-row"><span>Working starts</span><strong>${formatExamTime(new Date(times.workingStartMs))}</strong></div>
           <div class="timeline-row warning"><span>10-minute warning</span><strong>${formatExamTime(new Date(times.warningMs))}</strong></div>
           <div class="timeline-row finish"><span>Working finishes</span><strong>${formatExamTime(new Date(times.finishMs))}</strong></div>
@@ -401,6 +401,7 @@ function updateSessionState(now = new Date()) {
   const upcomingEvents = [];
   let hasWorking = false;
   let hasPerusal = false;
+  const readingPhases = new Set();
   let hasAara = false;
   let hasWaiting = false;
   let hasPaused = false;
@@ -429,7 +430,8 @@ function updateSessionState(now = new Date()) {
       if (!isPaused) upcomingEvents.push({ time: times.startMs, label: `${exam.name} begins` });
     } else if (exam.perusal > 0 && phaseNowMs < times.workingStartMs) {
       hasPerusal = true;
-      phaseName = "PERUSAL / PLANNING";
+      readingPhases.add(timingWord(exam));
+      phaseName = timingTitle(exam).toUpperCase();
       phaseClass = "phase-perusal";
       phaseCaption = "remaining";
       remaining = times.workingStartMs - phaseNowMs;
@@ -470,7 +472,7 @@ function updateSessionState(now = new Date()) {
     : hasWorking
     ? "Working time in progress"
     : hasPerusal
-      ? "Perusal / planning in progress"
+      ? `${[...readingPhases].map(word => word[0].toUpperCase() + word.slice(1)).join(" / ")} in progress`
       : hasAara
         ? "AARA extra time in progress"
         : hasWaiting
@@ -551,6 +553,7 @@ function examEditSnapshot() {
     noLeaveBeforeEnd: fieldText(document.querySelector("#editNoLeaveBeforeEnd").value),
     eaScheduledStart: document.querySelector("#editEaScheduledStart").value,
     scheduledPeriodStart: document.querySelector("#editScheduledPeriodStart").value,
+    timing: document.querySelector("#editTiming").value,
   });
 }
 
@@ -568,6 +571,7 @@ function savedExamSnapshot(exam) {
     noLeaveBeforeEnd: fieldText(exam.noLeaveBeforeEnd),
     eaScheduledStart: exam.eaScheduledStart || "09:00",
     scheduledPeriodStart: exam.scheduledPeriodStart || "",
+    timing: timingWord(exam),
   });
 }
 
@@ -685,6 +689,7 @@ function examEditDraft() {
     noLeaveBeforeEnd: editFieldNumber("#editNoLeaveBeforeEnd"),
     eaScheduledStart: document.querySelector("#editEaScheduledStart").value,
     scheduledPeriodStart: document.querySelector("#editScheduledPeriodStart").value,
+    timing: document.querySelector("#editTiming").value,
   };
 }
 
@@ -730,6 +735,11 @@ const EDIT_FIELD_SELECTORS = {
   leavingPolicy: "#editLeavingPolicy",
 };
 
+function refreshTimingLabel() {
+  const kind = document.querySelector("#editTiming").value;
+  document.querySelector("#editPerusalLabel").textContent = kind === "planning" ? "Planning" : "Perusal";
+}
+
 function refreshCustomPresetButtons() {
   const isCustom = String(document.querySelector("#editPreset").value).startsWith("custom-");
   document.querySelector("#saveCustomPreset").textContent = isCustom ? "Update saved option" : "Save as custom option";
@@ -758,6 +768,8 @@ function populateExamEdit(index) {
   document.querySelector("#examEditTitle").textContent = `Exam ${index + 1} · ${exam.name}`;
   document.querySelector("#editName").value = exam.name;
   document.querySelector("#editType").value = ["Custom", "FIA", "IA", "EA"].includes(exam.type) ? exam.type : "Custom";
+  document.querySelector("#editTiming").value = timingWord(exam);
+  refreshTimingLabel();
   document.querySelector("#editPerusal").value = exam.perusal;
   document.querySelector("#editWorking").value = exam.working;
   document.querySelector("#editColour").innerHTML = EXAM_COLOURS
@@ -890,6 +902,8 @@ function applyPresetChoice(presetId) {
 
   document.querySelector("#editName").value = selected.name;
   document.querySelector("#editType").value = ["Custom", "FIA", "IA", "EA"].includes(selected.type) ? selected.type : "Custom";
+  document.querySelector("#editTiming").value = timingWord(selected);
+  refreshTimingLabel();
   document.querySelector("#editPerusal").value = selected.perusal;
   document.querySelector("#editWorking").value = selected.working;
   document.querySelector("#editColour").value = selected.colour;
@@ -960,6 +974,11 @@ presetList.addEventListener("click", event => {
   const choice = comboMatches[Number(option.dataset.comboIndex)];
   if (choice) applyPresetChoice(choice.id);
   closeCombo();
+});
+
+document.querySelector("#editTiming").addEventListener("change", () => {
+  refreshTimingLabel();
+  refreshExamEditReset();
 });
 
 document.querySelector("#editLeavingPolicy").addEventListener("change", event => {

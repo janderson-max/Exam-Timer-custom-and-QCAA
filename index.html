@@ -64,7 +64,7 @@
         <span class="notice-icon" aria-hidden="true">i</span>
         <p><strong>Candidate reminder</strong><br />Remain seated and follow supervisor instructions when your exam finishes.</p>
         <div class="legend" aria-label="Colour key">
-          <span><i class="dot dot-blue"></i> Perusal / planning</span>
+          <span><i class="dot dot-blue"></i> Perusal (no writing) / planning (writing allowed)</span>
           <span><i class="dot dot-green"></i> Working</span>
           <span><i class="dot dot-amber"></i> Warning</span>
           <span><i class="dot dot-red"></i> Finished</span>
@@ -114,10 +114,10 @@
       <p class="control-warning">Opening these controls pauses the selected exam. Closing this window leaves it paused until a start or resume action is chosen.</p>
       <div class="control-action-grid">
         <button class="control-action" type="button" data-control-action="perusal" data-control-scope="one">
-          <strong>Start perusal now</strong><span>This exam only</span>
+          <strong>Start perusal / planning</strong><span>This exam only</span>
         </button>
         <button class="control-action" type="button" data-control-action="perusal" data-control-scope="all">
-          <strong>Start perusal now</strong><span>All exams</span>
+          <strong>Start perusal / planning</strong><span>All exams</span>
         </button>
         <button class="control-action" type="button" data-control-action="working" data-control-scope="one">
           <strong>Start exam now</strong><span>This exam only · begin working time</span>
@@ -172,7 +172,13 @@
             </select>
           </label>
           <label>Subject colour<select id="editColour" name="editColour"></select></label>
-          <label>Perusal / planning (min)<input id="editPerusal" name="editPerusal" type="number" min="0" max="120" required /></label>
+          <label>Reading time before working
+            <select id="editTiming" name="editTiming">
+              <option value="perusal">Perusal — no writing</option>
+              <option value="planning">Planning — writing allowed</option>
+            </select>
+          </label>
+          <label><span id="editPerusalLabel">Perusal</span> time (min)<input id="editPerusal" name="editPerusal" type="number" min="0" max="120" required /></label>
           <label>Working time (min)<input id="editWorking" name="editWorking" type="number" min="1" max="600" required /></label>
           <fieldset class="aara-picker wide">
             <legend>AARA extra-time groups</legend>

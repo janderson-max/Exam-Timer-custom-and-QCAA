@@ -11,6 +11,8 @@ const {
   createExamTimeline,
   formatRemaining,
   periodLabel,
+  timingWord,
+  timingTitle,
 } = require('../timer-core.js');
 const { QCAA_EA_DIRECTIONS } = require('../presets.js');
 
@@ -139,5 +141,13 @@ assert.equal(normalizeExam({ scheduledPeriodStart: '11:10' }).scheduledPeriodSta
 assert.equal(normalizeExam({}).scheduledPeriodStart, '', 'exams are unscheduled by default');
 assert.equal(periodLabel('11:10'), 'Period 3', 'periods are named for the card');
 assert.equal(periodLabel('07:00'), '', 'an unknown time has no period name');
+
+// --- perusal and planning ------------------------------------------------
+assert.equal(timingWord(normalizeExam({ name: "X", timing: "planning" })), "planning", "a planning exam keeps planning");
+assert.equal(timingWord(normalizeExam({ name: "X", timing: "perusal" })), "perusal", "a perusal exam keeps perusal");
+// Perusal is the stricter of the two, so an unset or bad value falls back to it.
+assert.equal(timingWord(normalizeExam({ name: "X" })), "perusal", "an exam typed in by hand defaults to perusal");
+assert.equal(timingWord(normalizeExam({ name: "X", timing: "whatever" })), "perusal", "an unknown kind falls back to perusal");
+assert.equal(timingTitle(normalizeExam({ name: "X", timing: "planning" })), "Planning", "titles are capitalised for the display");
 
 console.log('All timer validation checks passed.');
