@@ -9,18 +9,40 @@
   </head>
   <body>
     <header class="topbar">
-      <div class="brand-block">
-        <span class="draft-pill">INTERFACE DRAFT</span>
-        <h1>Exam Room Timer</h1>
-        <p>Custom exams and sourced QCAA 2025 syllabus presets</p>
-      </div>
+      <h1 class="visually-hidden">Exam Room Timer</h1>
+      <div class="date-block"><span id="date">Friday 4 September</span></div>
       <div class="clock-block" aria-label="Current local time">
-        <span id="date">Friday 4 September</span>
         <strong id="clock">9:05:00 AM</strong>
       </div>
+      <div class="session-start" id="sessionStartControl">
+        <div class="session-start-row">
+          <div class="start-control" id="startControl">
+          <select id="startTimeChoice" aria-label="Choose a session start-time preset">
+            <optgroup label="QCAA EA scheduled sessions">
+              <option value="09:00:00">Morning — 9:00 am</option>
+              <option value="12:30:00">Afternoon — 12:30 pm</option>
+            </optgroup>
+            <optgroup label="School period start + 5 minutes">
+              <option value="08:40:00">Period 1 — 8:40 am</option>
+              <option value="09:35:00">Period 2 — 9:35 am</option>
+              <option value="11:10:00">Period 3 — 11:10 am</option>
+              <option value="12:05:00">Period 4 — 12:05 pm</option>
+              <option value="13:40:00">Period 5 — 1:40 pm</option>
+              <option value="14:30:00">Period 6 — 2:30 pm</option>
+            </optgroup>
+            <option value="manual">Manual time…</option>
+          </select>
+          <input id="sessionStart" type="time" value="09:00:00" step="1" required hidden />
+          </div>
+          <button class="button button-current-time icon-action" id="currentTimeButton" type="button" aria-label="Start the session from the current time" title="Start from the current time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.6" /><path d="M10 6.4V10l2.5 1.5" /><path d="M15.6 15.9l5.4 3-5.4 3z" fill="currentColor" stroke="none" /></svg></button>
+        </div>
+        <small class="visually-hidden" id="sessionSaveStatus" role="status" aria-live="polite">Saved on this browser when the session is applied.</small>
+      </div>
       <div class="header-actions">
-        <button class="button button-secondary" id="fullscreenButton" type="button">Full screen</button>
-        <button class="button button-primary" id="setupButton" type="button">Setup exams</button>
+        <span class="exam-count-status" id="examCountStatus">3 of 3 exams</span>
+        <button class="button button-ghost" id="addExamFromDisplay" type="button">+ Add exam</button>
+        <button class="button button-secondary icon-action" id="fullscreenButton" type="button" aria-label="Full screen" title="Full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" /></svg></button>
+        <button class="button button-primary icon-action" id="setupButton" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg></button>
       </div>
     </header>
 
@@ -54,56 +76,20 @@
       <div class="panel-header">
         <div>
           <span class="eyebrow">SUPERVISOR VIEW</span>
-          <h2 id="setupTitle">Set up this session</h2>
+          <h2 id="setupTitle">Settings</h2>
         </div>
         <button class="icon-button" id="closeSetupButton" type="button" aria-label="Close setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5.8 5.8l12.4 12.4M18.2 5.8L5.8 18.2" /></svg></button>
       </div>
-      <p class="panel-note">Draft application: verify the selected assessment conditions and current QCAA directions before administering an exam.</p>
+      <p class="panel-note">Exam timings are edited on the display: use the pencil on an exam card. Draft application — verify assessment conditions and current QCAA directions before administering an exam.</p>
 
-      <form id="setupForm">
-        <label>Session start
-          <select id="startTimeChoice" aria-label="Choose a session start-time preset">
-            <optgroup label="QCAA EA scheduled sessions">
-              <option value="09:00:00">Morning session — 9:00 am</option>
-              <option value="12:30:00">Afternoon session — 12:30 pm</option>
-            </optgroup>
-            <optgroup label="School period start + 5 minutes">
-              <option value="08:40:00">Period 1 — 8:40 am</option>
-              <option value="09:35:00">Period 2 — 9:35 am</option>
-              <option value="11:10:00">Period 3 — 11:10 am</option>
-              <option value="12:05:00">Period 4 — 12:05 pm</option>
-              <option value="13:40:00">Period 5 — 1:40 pm</option>
-              <option value="14:30:00">Period 6 — 2:30 pm</option>
-            </optgroup>
-            <option value="manual">Manual time entered below</option>
-          </select>
-          <div class="fixed-start-summary" id="fixedStartSummary">
-            <span>Exam session starts</span>
-            <strong id="fixedStartValue">9:00:00 AM</strong>
-          </div>
-          <span class="time-input-row" id="manualTimeControls" hidden>
-            <input id="sessionStart" type="time" value="09:00:00" step="1" required />
-            <button class="button button-current-time" id="currentTimeButton" type="button">Use current time</button>
-          </span>
-          <small class="save-status" id="sessionSaveStatus">Saved on this browser when the session is applied.</small>
-        </label>
-        <label class="checkbox-row" for="hideTimerSeconds">
-          <input id="hideTimerSeconds" name="hideTimerSeconds" type="checkbox" />
-          Hide seconds on exam timers (keep the main clock showing seconds)
-        </label>
-        <div class="exam-list-heading">
-          <strong>Exams in this room</strong>
-          <span id="examCount">3 of 3</span>
-        </div>
-        <div id="examEditors"></div>
-        <div class="exam-list-controls">
-          <button class="button button-add" id="addExamButton" type="button">+ Add another exam</button>
-        </div>
-        <div class="panel-actions">
-          <button class="button button-secondary" id="resetButton" type="button">Restore sample</button>
-          <button class="button button-primary" type="submit">Apply to display</button>
-        </div>
-      </form>
+      <label class="checkbox-row" for="hideTimerSeconds">
+        <input id="hideTimerSeconds" name="hideTimerSeconds" type="checkbox" />
+        Hide seconds on exam timers (keep the main clock showing seconds)
+      </label>
+
+      <div class="panel-actions">
+        <button class="button button-secondary" id="resetButton" type="button">Restore sample session</button>
+      </div>
     </aside>
     <div class="scrim" id="scrim" hidden></div>
 
@@ -172,6 +158,10 @@
             <input type="hidden" id="editPreset" name="editPreset" value="manual" />
           </div>
           <p class="edit-preset-source wide" id="editPresetSource"></p>
+          <div class="wide custom-preset-row">
+            <button class="button button-add" id="saveCustomPreset" type="button">Save as custom option</button>
+            <button class="button button-secondary" id="deleteCustomPreset" type="button" hidden>Delete saved option</button>
+          </div>
           <label class="wide">Display name<input id="editName" name="editName" required /></label>
           <label>Category
             <select id="editType" name="editType">
@@ -213,9 +203,10 @@
             <strong id="editLeavingPreview">Calculating…</strong>
           </div>
         </div>
-        <p class="edit-note">The permitted leaving window is supervisor information and is not shown on the room display. Session start time stays in <strong>Setup exams</strong>.</p>
+        <p class="edit-note">The permitted leaving window is supervisor information and is not shown on the room display. The session start time is set in the top bar.</p>
         <div class="dialog-actions edit-actions">
           <button class="button button-secondary" id="resetExamEdit" type="button">Reset changes</button>
+          <button class="button button-danger" id="removeExamFromEdit" type="button">Remove exam</button>
           <span class="edit-actions-gap"></span>
           <button class="button button-secondary" id="cancelExamEdit" type="button">Cancel</button>
           <button class="button button-primary" type="submit">Save changes</button>

@@ -1,0 +1,280 @@
+EXAM ROOM TIMER — GUIDE FOR EXAM SUPERVISORS
+============================================
+
+This is a countdown display for an exam room. You put it on the projector or
+room screen, and it shows students how long is left, when working time starts
+and finishes, and when the 10-minute warning falls.
+
+You do not need to install anything. It runs in a web browser.
+
+IMPORTANT BEFORE YOU START
+--------------------------
+This is a draft application. Always check the times against the assessment
+instrument itself and the current QCAA directions before you run a real exam.
+Do not rely on this app alone.
+
+Everything you set is saved in the browser on the computer you are using. It is
+NOT shared with other computers. If you set up on one machine and run the exam
+on another, you will need to set it up again on the second machine.
+
+
+---------------------------------------------------------------------------
+1. THE SCREEN AT A GLANCE
+---------------------------------------------------------------------------
+
+Along the top (dark blue bar):
+
+  Left      Today's date.
+  Middle    The current time. This is the real clock, not a countdown.
+  Right     The session start time, and four controls.
+
+The four controls on the right, from left to right:
+
+  "3 of 3 exams"   How many exams are on screen (you can have 1, 2 or 3).
+  "+ Add exam"     Adds another exam. Greyed out once you have three.
+  Square icon      Full screen. Use this once you are set up.
+  Cog icon         Settings.
+
+Below the top bar:
+
+  Room status      A plain-English summary, e.g. "Working time in progress",
+                   and the next thing that will happen.
+
+  Exam cards       One card per exam. Each card shows the exam name, a large
+                   countdown, and the list of times for that exam.
+
+  Candidate        A reminder for students, plus a colour key.
+  reminder
+
+
+---------------------------------------------------------------------------
+2. SETTING THE SESSION START TIME
+---------------------------------------------------------------------------
+
+This is the box at the top right, next to the round button with a clock and a
+small triangle.
+
+Click the box and choose one of:
+
+  Morning — 9:00 am        The QCAA morning external assessment session.
+  Afternoon — 12:30 pm     The QCAA afternoon external assessment session.
+  Period 1 to Period 6     Your school's period times (each is the period
+                           start plus five minutes).
+  Manual time…             Any time you like.
+
+If you choose "Manual time…", the box turns into a time field. Click it and
+type the time you want. The small arrow on the right of the box is still there
+if you want to go back to one of the fixed choices.
+
+The round button beside the box (a clock with a small play triangle) means
+"start from right now". Press it at any time and the session start jumps to
+the current time. This is the quickest option if an exam is starting late.
+
+Tip: the app remembers the last manual time you typed, so if you switch to a
+period and back to manual, your time is still there.
+
+
+---------------------------------------------------------------------------
+3. SETTING UP AN EXAM
+---------------------------------------------------------------------------
+
+Each exam card has two round buttons in its top right corner:
+
+  Clock (top)      Exam controls — start, pause and resume. See section 4.
+  Pencil (below)   Edit this exam's details. This section.
+
+Click the PENCIL to open "Quick edit". You will see:
+
+  Subject / preset
+      Start typing a subject and the list narrows to what matches. Typing
+      "biology ea" shows only the Biology external assessment papers. Typing
+      "data test" shows the data tests across every science subject.
+      Choose one and the name and all the times fill in for you.
+
+      There are 48 QCAA General subjects here. The times come from each
+      subject's own syllabus.
+
+      Choose "Custom / manual exam" if you want to type everything yourself.
+
+  Display name
+      What students see on the card. You can change this to anything, for
+      example "Year 11 Maths — Unit 1 test".
+
+  Category
+      Custom, FIA, IA or EA. This only appears as a small label on the card.
+
+  Subject colour
+      The colour of the card, so exams are easy to tell apart.
+
+  Perusal / planning (min)
+      Reading or planning time before working time starts. Put 0 if there
+      is none.
+
+  Working time (min)
+      How long students actually write for.
+
+  AARA extra-time groups
+      Tick "5 min per 30" and/or "10 min per 30" if you have students with
+      approved extra time. The card will then show a separate finish time for
+      each group.
+
+  Leaving rules
+      "Teacher-defined" lets you set how long students must stay at the start
+      and at the end. "QCAA EA June 2025" applies the official external
+      assessment rule automatically (no leaving in the first 40 minutes or the
+      last 10 minutes).
+
+  Scheduled period start
+      Optional. If you say the exam is scheduled in, say, Period 3, then the
+      leaving window is measured from the period start rather than from when
+      you actually pressed start. Leave it on "Not scheduled" if you are not
+      sure — the window is then measured from the actual start.
+
+  Calculated permitted leaving window
+      The app works this out for you. This is for supervisors; it is NOT shown
+      on the student display.
+
+Buttons at the bottom of Quick edit:
+
+  Save as custom option    Saves this exam so you can pick it again next time.
+  Reset changes            Undoes your edits and puts back what was saved.
+                           Greyed out until you actually change something.
+  Remove exam              Deletes this exam from the display.
+  Cancel                   Closes without saving.
+  Save changes             Applies your edits to the display.
+
+
+---------------------------------------------------------------------------
+4. RUNNING THE EXAM
+---------------------------------------------------------------------------
+
+Click the CLOCK button on an exam card. Two things happen:
+
+  1. That exam's timer PAUSES straight away.
+  2. A window of controls opens.
+
+This is deliberate — it means you cannot accidentally let time run away while
+you are deciding what to do. The exam stays paused until you choose a start or
+resume action.
+
+The controls are:
+
+  Start perusal now        Begins perusal / planning from this moment.
+  Start exam now           Skips straight to working time.
+  Resume timer             Continues a paused exam from where it stopped.
+  Pause all timers         Pauses everything at once.
+
+Each one comes in two versions: "This exam only" and "All exams". Use the
+"All exams" version when you have several exams starting together.
+
+While an exam runs, the card shows one of:
+
+  STARTS IN                Waiting for the start time.
+  PERUSAL / PLANNING       Reading time; counts down to working time.
+  WORKING                  Working time; counts down to the finish.
+  AARA EXTRA TIME          Extra time for approved students.
+  FINISHED                 Done.
+  PAUSED · ...             You have paused it.
+
+
+---------------------------------------------------------------------------
+5. CHANGING SOMETHING MID-EXAM
+---------------------------------------------------------------------------
+
+You can edit an exam after it has started. Click the pencil, change what you
+need, and press "Save changes".
+
+If the exam is already running, the app tells you so at the top of the Quick
+edit window, and it recalculates from when the exam ACTUALLY started, not from
+the scheduled time. So if an exam began late and you give students ten more
+minutes, the finish time moves ten minutes later than the real start.
+
+This is the safe way to extend or shorten an exam that is under way.
+
+
+---------------------------------------------------------------------------
+6. HOW MANY EXAMS
+---------------------------------------------------------------------------
+
+  To add     Press "+ Add exam" at the top right. Maximum of three.
+  To remove  Open the pencil on that exam and press "Remove exam".
+
+You must always have at least one exam, so "Remove exam" is greyed out when
+only one is left.
+
+With a single exam the layout changes: the name and countdown move to the left
+and the times to the right, and everything gets larger, which is easier to read
+from the back of a room.
+
+
+---------------------------------------------------------------------------
+7. SETTINGS (THE COG)
+---------------------------------------------------------------------------
+
+  Hide seconds on exam timers
+      Shows exam countdowns as minutes only. The big clock at the top keeps
+      showing seconds. Some supervisors prefer this so students are not
+      watching individual seconds tick down.
+
+  Restore sample session
+      Puts everything back to the starting example. Use this if you have made
+      a mess and want to begin again. It also clears any Units 1-2 timings you
+      have changed.
+
+
+---------------------------------------------------------------------------
+8. A TYPICAL SET-UP, STEP BY STEP
+---------------------------------------------------------------------------
+
+  1. Open the page.
+  2. Set the session start time at the top right.
+  3. Press "+ Add exam" or "Remove exam" until you have the right number.
+  4. On each card, click the pencil, choose the subject and instrument,
+     check perusal and working time, tick any AARA groups, then Save changes.
+  5. Check the times listed on each card against your assessment instrument.
+  6. Press the full-screen button.
+  7. When students are settled, click the clock on a card and choose
+     "Start perusal now" or "Start exam now" — use the "All exams" version if
+     everything starts together.
+
+
+---------------------------------------------------------------------------
+9. QUESTIONS YOU MIGHT HAVE
+---------------------------------------------------------------------------
+
+Q. I closed the browser by accident. Have I lost everything?
+A. No. Your exams and start time are saved in the browser. Open the page again
+   on the same computer and they will come back.
+
+Q. Can I set it up at home and run it in the exam room?
+A. No. The settings are stored in the browser on that particular computer. Set
+   it up on the machine you will actually use.
+
+Q. Where do the exam times come from?
+A. From the QCAA syllabus for each subject. Each preset records which syllabus
+   version it came from, and links to it.
+
+Q. What does "FIA (mirrors IA1 Data test)" mean?
+A. QCAA does not publish times for Units 1-2 assessment — schools set their
+   own. So the app offers a starting point that copies the timing of that
+   subject's own internal assessment. Change it to whatever your school uses;
+   it will remember your change for next time.
+
+Q. Why does clicking the clock pause my exam?
+A. So the display cannot keep counting while you are looking at the controls.
+   Choose "Resume timer" to carry on.
+
+Q. The countdown shows 0:01 but there is less than a minute left.
+A. With seconds hidden, the countdown rounds up. It only reads 0:00 when the
+   time really has run out, so you will never call time early.
+
+Q. Can students see the permitted leaving window?
+A. No. That is supervisor information and stays inside the Quick edit window.
+
+
+---------------------------------------------------------------------------
+IF IN DOUBT
+---------------------------------------------------------------------------
+
+Check the assessment instrument and the current QCAA directions. This app is a
+timing aid, not the authority on exam conditions.

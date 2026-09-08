@@ -112,8 +112,8 @@ const QCAA_SUBJECTS = [
     version: "2025 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_chemistry_25_syll.pdf",
     instruments: [
-      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Page 45 of 59 C onditions)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Page 45 of 59 C onditions" },
-      { key: "ia1-page-45-of-59-c-onditions", type: "IA", label: "IA1 Page 45 of 59 C onditions", timing: "perusal", perusal: 5, working: 60 },
+      { key: "fia", type: "FIA", label: "FIA (mirrors IA1 Data test)", timing: "perusal", perusal: 5, working: 60, mirrors: "IA1 Data test" },
+      { key: "ia1", type: "IA", label: "IA1 Data test", timing: "perusal", perusal: 5, working: 60 },
       { key: "ea-p1", type: "EA", label: "EA Paper 1", timing: "perusal", perusal: 5, working: 90 },
       { key: "ea-p2", type: "EA", label: "EA Paper 2", timing: "perusal", perusal: 5, working: 90 },
     ],
@@ -297,7 +297,7 @@ const QCAA_SUBJECTS = [
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
-      { key: "ea-page-35-of-36-conditi-ons", type: "EA", label: "EA Page 35 of 36 Conditi ons", timing: "perusal", perusal: 5, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
     ],
   },
   {
@@ -350,7 +350,7 @@ const QCAA_SUBJECTS = [
       { key: "ia1", type: "IA", label: "IA1 Short response", timing: "perusal", perusal: 5, working: 90 },
       { key: "ia2-extended-response", type: "IA", label: "IA2 Extended response", timing: "planning", perusal: 10, working: 80 },
       { key: "ia2-conversation", type: "IA", label: "IA2 Conversation", timing: "planning", perusal: 10, working: 7 },
-      { key: "ea-page-35-of-36-conditi-ons", type: "EA", label: "EA Page 35 of 36 Conditi ons", timing: "perusal", perusal: 5, working: 120 },
+      { key: "ea", type: "EA", label: "EA", timing: "perusal", perusal: 5, working: 120 },
     ],
   },
   {
@@ -509,8 +509,8 @@ const QCAA_SUBJECTS = [
     version: "2026 v1.3 (January 2026)",
     sourceUrl: "https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_music_ext_26_perf_syll.pdf",
     instruments: [
-      { key: "fia", type: "FIA", label: "FIA (mirrors EA Conditio ns)", timing: "planning", perusal: 20, working: 120, mirrors: "EA Conditio ns" },
-      { key: "ea-conditio-ns", type: "EA", label: "EA Conditio ns", timing: "planning", perusal: 20, working: 120 },
+      { key: "fia", type: "FIA", label: "FIA (mirrors EA)", timing: "planning", perusal: 20, working: 120, mirrors: "EA" },
+      { key: "ea", type: "EA", label: "EA", timing: "planning", perusal: 20, working: 120 },
     ],
   },
   {
@@ -621,7 +621,8 @@ const QCAA_PRESETS = QCAA_SUBJECTS.flatMap(subject => subject.instruments.map(in
   const isExternal = instrument.type === "EA";
   return {
     id: `qcaa-${subject.code}-${instrument.key}`,
-    name: `${subject.subject} — ${instrument.label}`,
+    // The mirrored instrument helps when choosing, but is not part of the exam name.
+    name: `${subject.subject} — ${instrument.label.replace(/\s*\(mirrors [^)]*\)$/, "")}`,
     subject: subject.subject,
     label: instrument.label,
     type: instrument.type,

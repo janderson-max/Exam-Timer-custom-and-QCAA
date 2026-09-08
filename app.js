@@ -16,13 +16,12 @@ let exams = structuredClone(SAMPLE_EXAMS);
 let customPresets = loadCustomPresets();
 let sessionDate = dateKey(new Date());
 let hideTimerSeconds = loadDisplayPrefs();
+let manualStart = "09:00:00";
 let presetOverrides = loadPresetOverrides();
 
 const examGrid = document.querySelector("#examGrid");
-const editors = document.querySelector("#examEditors");
 const panel = document.querySelector("#setupPanel");
 const scrim = document.querySelector("#scrim");
-const form = document.querySelector("#setupForm");
 const resetDialog = document.querySelector("#resetDialog");
 const examControlDialog = document.querySelector("#examControlDialog");
 const examEditDialog = document.querySelector("#examEditDialog");
@@ -78,18 +77,26 @@ function inputTime(date) {
     .join(":");
 }
 
+// The field reads back empty or partial while it is being typed into, so only a
+// complete time is worth remembering.
+function rememberManualStart() {
+  const typed = document.querySelector("#sessionStart").value;
+  if (/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(typed)) manualStart = typed;
+}
+
 function updateStartTimeControls() {
   const choice = document.querySelector("#startTimeChoice");
+  // The chosen option carries its own time, so only the manual field needs toggling.
   const isManual = choice.value === "manual";
-  document.querySelector("#manualTimeControls").hidden = !isManual;
-  document.querySelector("#fixedStartSummary").hidden = isManual;
-  if (!isManual) document.querySelector("#fixedStartValue").textContent = formatClock(getBaseDate());
+  document.querySelector("#startControl").classList.toggle("is-manual", isManual);
+  document.querySelector("#sessionStart").hidden = !isManual;
 }
 
 function validateSessionData(value) {
   if (!value || typeof value !== "object") return null;
   const safe = value;
   const startPattern = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+  const rememberedManual = String(safe.manualStart || "");
   if (!startPattern.test(String(safe.start || ""))) return null;
   if (!Array.isArray(safe.exams) || safe.exams.length < 1 || safe.exams.length > 3) return null;
   const restoredExams = safe.exams.map(exam => normalizeExam(migrateLegacyExam(exam)));
@@ -98,6 +105,7 @@ function validateSessionData(value) {
     version: SESSION_STORAGE_VERSION,
     start: String(safe.start),
     startChoice: typeof safe.startChoice === "string" ? safe.startChoice : "manual",
+    manualStart: startPattern.test(rememberedManual) ? rememberedManual : String(safe.start),
     date: /^\d{4}-\d{2}-\d{2}$/.test(String(safe.date || "")) ? String(safe.date) : dateKey(new Date()),
     exams: restoredExams,
   };
@@ -108,6 +116,7 @@ function persistSession(message = "Session saved on this browser.") {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       version: SESSION_STORAGE_VERSION,
       start: document.querySelector("#sessionStart").value,
+      manualStart,
       startChoice: document.querySelector("#startTimeChoice").dataset.applied === "true"
         ? document.querySelector("#startTimeChoice").value
         : "manual",
@@ -211,6 +220,7 @@ function restoreSession() {
     if (!validSession) return;
 
     document.querySelector("#sessionStart").value = validSession.start;
+    manualStart = validSession.manualStart;
     const startChoice = document.querySelector("#startTimeChoice");
     startChoice.value = [...startChoice.options].some(option => option.value === validSession.startChoice)
       ? validSession.startChoice
@@ -378,6 +388,9 @@ function renderCards() {
       </article>`;
   }).join("");
 
+  document.querySelector("#examCountStatus").textContent = `${exams.length} of 3 exams`;
+  document.querySelector("#addExamFromDisplay").disabled = exams.length >= 3;
+
   const first = exams[0];
   document.querySelector("#nextEvent").textContent = `10-minute warning at ${formatExamTime(new Date(examTimes(first, start).warningMs))}`;
   updateSessionState();
@@ -472,67 +485,7 @@ function updateSessionState(now = new Date()) {
       : "No further scheduled events";
 }
 
-function presetOptions(selectedId) {
-  const option = preset => `<option value="${preset.id}" ${preset.id === selectedId ? "selected" : ""}>${escapeHtml(preset.name)}</option>`;
 
-  // One group per subject: a single flat list of every QCAA instrument is too long
-  // to pick from. The group heading carries the subject, so the option only needs
-  // the instrument (e.g. "EA Paper 1" under "Biology").
-  const bySubject = new Map();
-  QCAA_PRESETS.forEach(preset => {
-    if (!bySubject.has(preset.subject)) bySubject.set(preset.subject, []);
-    bySubject.get(preset.subject).push(preset);
-  });
-  const qcaaGroups = [...bySubject].map(([subject, presets]) => `
-    <optgroup label="${escapeHtml(subject)}">${presets.map(preset =>
-      `<option value="${preset.id}" ${preset.id === selectedId ? "selected" : ""}>${escapeHtml(preset.label || preset.name)}</option>`
-    ).join("")}</optgroup>`).join("");
-
-  return `
-    <option value="manual" ${selectedId === "manual" ? "selected" : ""}>Custom / manual exam</option>
-    ${qcaaGroups}
-    ${customPresets.length ? `<optgroup label="Saved custom exams">${customPresets.map(option).join("")}</optgroup>` : ""}`;
-}
-
-function leavingControls(exam, index) {
-  if (exam.leavingPolicy === "qcaa-ea-2025") {
-    return `
-      <label>Leaving rules
-        <select name="leavingPolicy-${index}" data-leaving-policy-index="${index}">
-          <option value="teacher">Teacher-defined</option>
-          <option value="qcaa-ea-2025" selected>QCAA EA June 2025</option>
-        </select>
-      </label>
-      <label>Scheduled EA session
-        <select name="eaScheduledStart-${index}">
-          <option value="09:00" ${exam.eaScheduledStart === "09:00" ? "selected" : ""}>Morning — 9:00 am</option>
-          <option value="12:30" ${exam.eaScheduledStart === "12:30" ? "selected" : ""}>Afternoon — 12:30 pm</option>
-        </select>
-      </label>
-      <p class="field-note wide">Leaving is blocked until 40 minutes after the scheduled start and during the final 10 minutes.</p>
-      <div class="leaving-preview wide">
-        <span>Calculated permitted leaving window</span>
-        <strong id="leavingPreview-${index}">Calculating…</strong>
-      </div>`;
-  }
-
-  return `
-    <label>Leaving rules
-      <select name="leavingPolicy-${index}" data-leaving-policy-index="${index}">
-        <option value="teacher" selected>Teacher-defined</option>
-        <option value="qcaa-ea-2025">QCAA EA June 2025</option>
-      </select>
-    </label>
-    <label>Scheduled period start
-      <select name="scheduledPeriodStart-${index}">${periodOptions(exam.scheduledPeriodStart || "")}</select>
-    </label>
-    <label>Cannot leave for first (session min)<input name="leaveAfterStart-${index}" type="number" min="0" max="600" value="${exam.leaveAfterStart ?? ""}" required /></label>
-    <label>Cannot leave during final (min)<input name="noLeaveBeforeEnd-${index}" type="number" min="0" max="600" value="${exam.noLeaveBeforeEnd ?? ""}" required /></label>
-    <div class="leaving-preview wide">
-      <span>Calculated permitted leaving window</span>
-      <strong id="leavingPreview-${index}">Calculating…</strong>
-    </div>`;
-}
 
 function editSourceNote(exam) {
   const note = exam.source ? sourceNote(exam) : "Custom / manual exam — timings are not linked to a syllabus.";
@@ -552,99 +505,12 @@ function sourceNote(exam) {
     : syllabusLink;
 }
 
-function renderEditors() {
-  editors.innerHTML = exams.map((exam, index) => `
-    <section class="editor">
-      <div class="editor-heading">
-        <h3>Exam ${index + 1}</h3>
-        <button class="remove-exam" type="button" data-remove-exam="${index}" ${exams.length === 1 ? "disabled" : ""} aria-label="Remove exam ${index + 1}">Remove</button>
-      </div>
-      <div class="editor-grid">
-        <label class="wide">Preset
-          <select name="preset-${index}" data-preset-index="${index}">${presetOptions(exam.presetId || "manual")}</select>
-        </label>
-        <p class="preset-source wide">${sourceNote(exam)}</p>
-        <label class="wide">Display name<input name="name-${index}" value="${escapeHtml(exam.name)}" required /></label>
-        <label>Category
-          <select name="type-${index}">
-            ${["Custom", "FIA", "IA", "EA"].map(type => `<option ${type === exam.type ? "selected" : ""}>${type}</option>`).join("")}
-          </select>
-        </label>
-        <label>Perusal / planning (min)<input name="perusal-${index}" type="number" min="0" max="120" value="${exam.perusal ?? ""}" required /></label>
-        <label>Working time (min)<input name="working-${index}" type="number" min="1" max="600" value="${exam.working ?? ""}" required /></label>
-        <fieldset class="aara-picker">
-          <legend>AARA extra-time groups</legend>
-          <label><input name="aara-${index}" type="checkbox" value="5" ${aaraRates(exam).includes(5) ? "checked" : ""} /> 5 min per 30</label>
-          <label><input name="aara-${index}" type="checkbox" value="10" ${aaraRates(exam).includes(10) ? "checked" : ""} /> 10 min per 30</label>
-        </fieldset>
-        ${leavingControls(exam, index)}
-        <label>Subject colour
-          <select name="colour-${index}">
-            ${EXAM_COLOURS.map(colour => `<option value="${colour}" ${colour === exam.colour ? "selected" : ""}>${colour[0].toUpperCase() + colour.slice(1)}</option>`).join("")}
-          </select>
-        </label>
-        <div class="custom-preset-actions wide">
-          <button type="button" class="save-custom" data-save-custom="${index}">${String(exam.presetId).startsWith("custom-") ? "Update saved option" : "Save as custom option"}</button>
-          ${String(exam.presetId).startsWith("custom-") ? `<button type="button" class="delete-custom" data-delete-custom="${index}">Delete saved option</button>` : ""}
-        </div>
-      </div>
-    </section>`).join("");
 
-  document.querySelector("#examCount").textContent = `${exams.length} of 3`;
-  document.querySelector("#addExamButton").disabled = exams.length >= 3;
-  updateLeavingPreviews();
-}
 
-function updateLeavingPreviews() {
-  const draft = readEditorDraft();
-  draft.forEach((exam, index) => {
-    const preview = document.querySelector(`#leavingPreview-${index}`);
-    if (!preview) return;
-    const complete = [exam.perusal, exam.working, exam.leaveAfterStart, exam.noLeaveBeforeEnd].every(Number.isFinite);
-    if (!complete) {
-      preview.textContent = "Complete the timing fields";
-      preview.classList.add("invalid-window");
-      return;
-    }
-
-    const times = examTimes(exam);
-    if (times.leavingStartMs > times.leavingEndMs) {
-      preview.textContent = "No valid leaving window";
-      preview.classList.add("invalid-window");
-      return;
-    }
-
-    preview.textContent = `${formatExamTime(new Date(times.leavingStartMs))} to ${formatExamTime(new Date(times.leavingEndMs))}`;
-    preview.classList.remove("invalid-window");
-  });
-}
-
-function nullableNumber(name, fallback) {
-  const field = form.elements.namedItem(name);
-  if (!field) return fallback ?? null;
-  return field.value === "" ? null : Number(field.value);
-}
 
 // Returns the raw editor values: an empty field stays null so that the in-progress
 // guards (leaving-window preview, custom-preset save, submit) can tell "not filled
 // in yet" from a deliberate 0. Normalisation happens when the session is applied.
-function readEditorDraft() {
-  return exams.map((exam, index) => ({
-    ...exam,
-    presetId: form.elements.namedItem(`preset-${index}`)?.value ?? exam.presetId ?? "manual",
-    name: form.elements.namedItem(`name-${index}`)?.value ?? exam.name,
-    type: form.elements.namedItem(`type-${index}`)?.value ?? exam.type,
-    perusal: nullableNumber(`perusal-${index}`, exam.perusal),
-    working: nullableNumber(`working-${index}`, exam.working),
-    aaraOptions: [...form.querySelectorAll(`input[name="aara-${index}"]:checked`)].map(input => Number(input.value)),
-    leaveAfterStart: nullableNumber(`leaveAfterStart-${index}`, exam.leaveAfterStart),
-    noLeaveBeforeEnd: nullableNumber(`noLeaveBeforeEnd-${index}`, exam.noLeaveBeforeEnd),
-    leavingPolicy: form.elements.namedItem(`leavingPolicy-${index}`)?.value ?? exam.leavingPolicy ?? "teacher",
-    eaScheduledStart: form.elements.namedItem(`eaScheduledStart-${index}`)?.value ?? exam.eaScheduledStart ?? "09:00",
-    scheduledPeriodStart: form.elements.namedItem(`scheduledPeriodStart-${index}`)?.value ?? exam.scheduledPeriodStart ?? "",
-    colour: form.elements.namedItem(`colour-${index}`)?.value ?? exam.colour,
-  }));
-}
 
 function newExam(index) {
   return {
@@ -854,6 +720,22 @@ function syncEditLeavingFields() {
   updateEditLeavingPreview();
 }
 
+// Maps a problem reported by examProblem() to the field that shows it.
+const EDIT_FIELD_SELECTORS = {
+  name: "#editName",
+  perusal: "#editPerusal",
+  working: "#editWorking",
+  leaveAfterStart: "#editLeaveAfterStart",
+  noLeaveBeforeEnd: "#editNoLeaveBeforeEnd",
+  leavingPolicy: "#editLeavingPolicy",
+};
+
+function refreshCustomPresetButtons() {
+  const isCustom = String(document.querySelector("#editPreset").value).startsWith("custom-");
+  document.querySelector("#saveCustomPreset").textContent = isCustom ? "Update saved option" : "Save as custom option";
+  document.querySelector("#deleteCustomPreset").hidden = !isCustom;
+}
+
 function refreshExamEditReset() {
   const exam = exams[editingExamIndex];
   document.querySelector("#resetExamEdit").disabled = !exam || examEditSnapshot() === savedExamSnapshot(exam);
@@ -903,7 +785,23 @@ function populateExamEdit(index) {
       : "This exam's timer is already running. Saving recalculates its times from when it actually started, not from the scheduled session start.";
   }
 
+  document.querySelector("#removeExamFromEdit").disabled = exams.length <= 1;
+  refreshCustomPresetButtons();
   refreshExamEditReset();
+}
+
+function addExam() {
+  if (exams.length >= 3) return;
+  exams = [...exams, normalizeExam(newExam(exams.length))];
+  persistSession("Exam added and saved on this browser.");
+  renderCards();
+}
+
+function removeExam(index) {
+  if (exams.length <= 1 || !exams[index]) return;
+  exams = exams.filter((_, position) => position !== index);
+  persistSession("Exam removed and saved on this browser.");
+  renderCards();
 }
 
 function openExamEdit(index) {
@@ -964,39 +862,6 @@ examControlDialog.addEventListener("click", event => {
   examControlDialog.close();
 });
 
-form.addEventListener("submit", event => {
-  event.preventDefault();
-  const nextExams = readEditorDraft();
-  const problemIndex = nextExams.findIndex(exam => examProblem(exam));
-  if (problemIndex !== -1) {
-    const { field, message } = examProblem(nextExams[problemIndex]);
-    const input = form.elements.namedItem(`${field}-${problemIndex}`);
-    if (input) {
-      const clear = () => input.setCustomValidity("");
-      input.setCustomValidity(message);
-      input.reportValidity();
-      input.addEventListener("input", clear, { once: true });
-      input.addEventListener("change", clear, { once: true });
-    }
-    return;
-  }
-
-  const invalidIndex = nextExams.findIndex(exam => exam.leavingPolicy === "teacher"
-    && exam.leaveAfterStart + exam.noLeaveBeforeEnd > exam.perusal + exam.working);
-  if (invalidIndex !== -1) {
-    const input = form.elements.namedItem(`noLeaveBeforeEnd-${invalidIndex}`);
-    input.setCustomValidity("The two restricted periods overlap, so there would be no permitted leaving window.");
-    input.reportValidity();
-    input.addEventListener("input", () => input.setCustomValidity(""), { once: true });
-    return;
-  }
-
-  exams = nextExams.map(exam => normalizeExam(exam));
-  exams.forEach(rememberPresetOverride);
-  persistSession();
-  renderCards();
-  closePanel();
-});
 
 function applyPresetChoice(presetId) {
   const current = exams[editingExamIndex] || {};
@@ -1006,6 +871,7 @@ function applyPresetChoice(presetId) {
   if (presetId === "manual") {
     editPresetPatch = { presetId: "manual", source: "", sourceUrl: "" };
     document.querySelector("#editPresetSource").innerHTML = editSourceNote({ presetId: "manual" });
+    refreshCustomPresetButtons();
     refreshExamEditReset();
     return;
   }
@@ -1038,6 +904,7 @@ function applyPresetChoice(presetId) {
   document.querySelector("#editScheduledPeriodStart").innerHTML = periodOptions(selected.scheduledPeriodStart || "");
 
   document.querySelector("#editPresetSource").innerHTML = editSourceNote(selected);
+  refreshCustomPresetButtons();
   syncEditLeavingFields();
   refreshExamEditReset();
 }
@@ -1114,6 +981,56 @@ document.querySelector("#resetExamEdit").addEventListener("click", () => {
 examEditForm.addEventListener("input", refreshExamEditReset);
 examEditForm.addEventListener("change", refreshExamEditReset);
 
+document.querySelector("#saveCustomPreset").addEventListener("click", () => {
+  const draft = examEditDraft();
+  const problem = examProblem(draft);
+  if (problem) {
+    document.querySelector("#sessionSaveStatus").textContent = problem.message;
+    const input = document.querySelector(EDIT_FIELD_SELECTORS[problem.field]);
+    if (input) input.reportValidity();
+    return;
+  }
+
+  const normalised = normalizeExam(draft);
+  const existingId = String(normalised.presetId).startsWith("custom-") ? normalised.presetId : null;
+  const id = existingId || `custom-${Date.now()}`;
+  const { runtime, ...definition } = normalised;
+  const savedPreset = { ...definition, id, presetId: id, source: "Saved custom exam", sourceUrl: "" };
+
+  const at = customPresets.findIndex(preset => preset.id === id);
+  if (at === -1) customPresets.push(savedPreset);
+  else customPresets[at] = savedPreset;
+  persistCustomPresets();
+
+  editPresetPatch = { presetId: id, id, source: savedPreset.source, sourceUrl: "" };
+  document.querySelector("#editPreset").value = id;
+  document.querySelector("#editPresetInput").value = comboDisplayFor(id);
+  document.querySelector("#editPresetSource").innerHTML = editSourceNote(savedPreset);
+  refreshCustomPresetButtons();
+  refreshExamEditReset();
+});
+
+document.querySelector("#deleteCustomPreset").addEventListener("click", () => {
+  const id = document.querySelector("#editPreset").value;
+  if (!String(id).startsWith("custom-")) return;
+  customPresets = customPresets.filter(preset => preset.id !== id);
+  persistCustomPresets();
+
+  // The exam keeps its timings; only the link to the saved option is dropped.
+  editPresetPatch = { presetId: "manual", source: "", sourceUrl: "" };
+  document.querySelector("#editPreset").value = "manual";
+  document.querySelector("#editPresetInput").value = comboDisplayFor("manual");
+  document.querySelector("#editPresetSource").innerHTML = editSourceNote({ presetId: "manual" });
+  refreshCustomPresetButtons();
+  refreshExamEditReset();
+});
+
+document.querySelector("#addExamFromDisplay").addEventListener("click", addExam);
+document.querySelector("#removeExamFromEdit").addEventListener("click", () => {
+  removeExam(editingExamIndex);
+  examEditDialog.close();
+});
+
 document.querySelector("#closeExamEdit").addEventListener("click", () => examEditDialog.close());
 document.querySelector("#cancelExamEdit").addEventListener("click", () => examEditDialog.close());
 examEditForm.addEventListener("submit", event => {
@@ -1163,7 +1080,6 @@ examEditForm.addEventListener("submit", event => {
   rebaseRuntime(draft, previousRuntime);
 
   persistSession("Exam details updated and saved on this browser.");
-  renderEditors();
   renderCards();
   examEditDialog.close();
 });
@@ -1175,106 +1091,6 @@ document.querySelector("#hideTimerSeconds").addEventListener("change", event => 
   persistDisplayPrefs();
   renderCards();
 });
-document.querySelector("#addExamButton").addEventListener("click", () => {
-  if (exams.length >= 3) return;
-  exams = readEditorDraft();
-  exams.push(newExam(exams.length));
-  renderEditors();
-});
-editors.addEventListener("click", event => {
-  const removeButton = event.target.closest("[data-remove-exam]");
-  if (removeButton && exams.length > 1) {
-    const nextExams = readEditorDraft();
-    nextExams.splice(Number(removeButton.dataset.removeExam), 1);
-    exams = nextExams;
-    renderEditors();
-    return;
-  }
-
-  const saveButton = event.target.closest("[data-save-custom]");
-  if (saveButton) {
-    const index = Number(saveButton.dataset.saveCustom);
-    const nextExams = readEditorDraft();
-    const exam = nextExams[index];
-    const valid = exam.name.trim() && Number.isFinite(exam.perusal) && Number.isFinite(exam.working)
-      && Number.isFinite(exam.leaveAfterStart) && Number.isFinite(exam.noLeaveBeforeEnd);
-    if (!valid) {
-      document.querySelector("#sessionSaveStatus").textContent = "Complete this exam's timing fields before saving it as an option.";
-      return;
-    }
-
-    const existingId = String(exam.presetId).startsWith("custom-") ? exam.presetId : null;
-    const id = existingId || `custom-${Date.now()}`;
-    const { runtime, ...definition } = exam;
-    const savedPreset = { ...definition, id, presetId: id, source: "Saved custom exam", sourceUrl: "" };
-    const existingIndex = customPresets.findIndex(preset => preset.id === id);
-    if (existingIndex === -1) customPresets.push(savedPreset);
-    else customPresets[existingIndex] = savedPreset;
-    nextExams[index] = savedPreset;
-    exams = nextExams;
-    const saved = persistCustomPresets();
-    renderEditors();
-    document.querySelector("#sessionSaveStatus").textContent = saved
-      ? `“${exam.name}” saved as a reusable custom option.`
-      : "Browser storage is unavailable; the custom option could not be saved.";
-    return;
-  }
-
-  const deleteButton = event.target.closest("[data-delete-custom]");
-  if (deleteButton) {
-    const index = Number(deleteButton.dataset.deleteCustom);
-    const nextExams = readEditorDraft();
-    const id = nextExams[index].presetId;
-    customPresets = customPresets.filter(preset => preset.id !== id);
-    nextExams[index] = { ...nextExams[index], presetId: "manual", source: "", sourceUrl: "" };
-    exams = nextExams;
-    persistCustomPresets();
-    renderEditors();
-    document.querySelector("#sessionSaveStatus").textContent = "Saved custom option deleted; the current exam settings were retained.";
-  }
-});
-editors.addEventListener("change", event => {
-  const presetSelect = event.target.closest("[data-preset-index]");
-  if (presetSelect) {
-    const index = Number(presetSelect.dataset.presetIndex);
-    const nextExams = readEditorDraft();
-    const presetId = presetSelect.value;
-    if (presetId === "manual") {
-      nextExams[index] = { ...nextExams[index], presetId: "manual", source: "", sourceUrl: "" };
-    } else {
-      const preset = [...QCAA_PRESETS, ...customPresets].find(item => item.id === presetId);
-      if (preset) {
-        const current = nextExams[index];
-        const selected = structuredClone(presetWithOverrides(preset));
-        ["perusal", "working", "leaveAfterStart", "noLeaveBeforeEnd"].forEach(field => {
-          if (selected[field] == null) selected[field] = current[field];
-        });
-        nextExams[index] = { ...selected, presetId };
-      }
-    }
-    exams = nextExams;
-    renderEditors();
-    return;
-  }
-
-  const policySelect = event.target.closest("[data-leaving-policy-index]");
-  if (policySelect) {
-    const index = Number(policySelect.dataset.leavingPolicyIndex);
-    const nextExams = readEditorDraft();
-    nextExams[index].leavingPolicy = policySelect.value;
-    if (policySelect.value === "qcaa-ea-2025") {
-      nextExams[index].leaveAfterStart = QCAA_EA_DIRECTIONS.firstMinutesFromScheduledStart;
-      nextExams[index].noLeaveBeforeEnd = QCAA_EA_DIRECTIONS.finalMinutes;
-      nextExams[index].eaScheduledStart ||= "09:00";
-    }
-    exams = nextExams;
-    renderEditors();
-    return;
-  }
-
-  updateLeavingPreviews();
-});
-editors.addEventListener("input", updateLeavingPreviews);
 document.querySelector("#currentTimeButton").addEventListener("click", () => {
   const choice = document.querySelector("#startTimeChoice");
   const now = new Date();
@@ -1282,18 +1098,19 @@ document.querySelector("#currentTimeButton").addEventListener("click", () => {
   sessionDate = dateKey(now);
   choice.value = "manual";
   document.querySelector("#sessionStart").value = inputTime(now);
+  rememberManualStart();
   choice.dataset.applied = "true";
+  updateStartTimeControls();
   persistSession("Current browser time saved as the manual session start.");
   renderCards();
-  updateLeavingPreviews();
 });
 document.querySelector("#sessionStart").addEventListener("input", () => {
+  rememberManualStart();
   clearRuntimeOverrides();
   sessionDate = dateKey(new Date());
   document.querySelector("#startTimeChoice").value = "manual";
   document.querySelector("#startTimeChoice").dataset.applied = "true";
   document.querySelector("#sessionSaveStatus").textContent = "Manual session time changed.";
-  updateLeavingPreviews();
 });
 document.querySelector("#sessionStart").addEventListener("change", () => {
   persistSession("Manual session start saved on this browser.");
@@ -1304,9 +1121,12 @@ document.querySelector("#startTimeChoice").addEventListener("change", event => {
   sessionDate = dateKey(new Date());
   choice.dataset.applied = "true";
   if (choice.value === "manual") {
+    clearRuntimeOverrides();
+    document.querySelector("#sessionStart").value = manualStart;
     updateStartTimeControls();
-    document.querySelector("#sessionSaveStatus").textContent = "Enter a time or choose “Use current time”.";
-    return;
+    persistSession("Manual session start restored.");
+    renderCards();
+      return;
   }
 
   clearRuntimeOverrides();
@@ -1315,7 +1135,6 @@ document.querySelector("#startTimeChoice").addEventListener("change", event => {
   const choiceLabel = choice.options[choice.selectedIndex].textContent.trim();
   persistSession(`${choiceLabel} applied and saved as the session start.`);
   renderCards();
-  updateLeavingPreviews();
 });
 scrim.addEventListener("click", closePanel);
 document.addEventListener("keydown", event => { if (event.key === "Escape" && panel.classList.contains("open")) closePanel(); });
@@ -1336,7 +1155,6 @@ document.querySelector("#confirmReset").addEventListener("click", () => {
   document.querySelector("#startTimeChoice").dataset.applied = "true";
   document.querySelector("#sessionStart").value = "09:00:00";
   updateStartTimeControls();
-  renderEditors();
   renderCards();
   persistSession("Sample session restored and saved on this browser.");
   resetDialog.close();
@@ -1352,7 +1170,6 @@ function updateClock() {
 restoreSession();
 document.querySelector("#hideTimerSeconds").checked = hideTimerSeconds;
 updateStartTimeControls();
-renderEditors();
 renderCards();
 updateClock();
 setInterval(updateClock, 1000);

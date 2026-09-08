@@ -69,7 +69,6 @@ function boot(seed = {}) {
 // --- the app starts up at all ---------------------------------------------
 const fresh = boot();
 assert.match(fresh.rendered['#examGrid'] ?? '', /exam-card/, 'the exam cards render on a fresh load');
-assert.match(fresh.rendered['#examEditors'] ?? '', /name-0/, 'the setup editors render on a fresh load');
 assert.equal(fresh.read('exams').length, 3, 'the sample session loads when nothing is saved');
 
 // --- a saved session from before the leaving-policy model ------------------
@@ -123,6 +122,35 @@ const legacyPref = boot({
   },
 });
 assert.equal(legacyPref.read('hideTimerSeconds'), true, 'the preference is picked up from the old session blob');
+
+// --- the manual start time is remembered ----------------------------------
+// Choosing a preset overwrites the applied start, so the manually typed time is kept
+// separately and restored when the session goes back to a manual start.
+const manual = boot({
+  [SESSION_KEY]: {
+    start: '09:00:00', manualStart: '13:15:00', startChoice: '09:00:00', date: '2026-09-07',
+    exams: [{ name: 'Kept', perusal: 5, working: 60, leaveAfterStart: 10, noLeaveBeforeEnd: 5, leavingPolicy: 'teacher' }],
+  },
+});
+assert.equal(manual.read('manualStart'), '13:15:00', 'a saved manual time is restored on load');
+
+// An older save has no manual time, so it falls back to the applied start.
+const noManual = boot({
+  [SESSION_KEY]: {
+    start: '10:15:00', startChoice: 'manual', date: '2026-09-07',
+    exams: [{ name: 'Kept', perusal: 5, working: 60, leaveAfterStart: 10, noLeaveBeforeEnd: 5, leavingPolicy: 'teacher' }],
+  },
+});
+assert.equal(noManual.read('manualStart'), '10:15:00', 'without one saved, the applied start is used');
+
+// A malformed value is refused rather than carried into the session start.
+const badManual = boot({
+  [SESSION_KEY]: {
+    start: '10:15:00', manualStart: 'not-a-time', startChoice: 'manual', date: '2026-09-07',
+    exams: [{ name: 'Kept', perusal: 5, working: 60, leaveAfterStart: 10, noLeaveBeforeEnd: 5, leavingPolicy: 'teacher' }],
+  },
+});
+assert.equal(badManual.read('manualStart'), '10:15:00', 'an invalid saved manual time is discarded');
 
 // --- quick edit rebases a running timer -----------------------------------
 // Once a timer is running its end times live in exam.runtime, which createExamTimeline

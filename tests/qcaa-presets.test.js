@@ -32,6 +32,26 @@ for (const preset of QCAA_PRESETS) {
   assert.equal(validateExam(normalizeExam(preset)), true, `${where}: should pass the app's exam validation`);
 }
 
+// --- labels and ids are clean --------------------------------------------
+// The instrument names are read out of the syllabus PDFs, where a heading can run
+// into the page footer. That leaked strings like "IA1 Page 45 of 59 C onditions"
+// into a label and its preset id, so both are checked for that debris.
+const DEBRIS = /page \d+|\d+ of \d+|onditi|conditio/i;
+for (const preset of QCAA_PRESETS) {
+  assert.ok(!DEBRIS.test(preset.label), `${preset.id}: label carries page-footer text ("${preset.label}")`);
+  assert.ok(!DEBRIS.test(preset.name), `${preset.id}: name carries page-footer text ("${preset.name}")`);
+  assert.ok(!DEBRIS.test(preset.id), `preset id carries page-footer text ("${preset.id}")`);
+  // A label is an instrument, not a sentence: short, and no stray digits beyond IA1-3.
+  assert.ok(preset.label.length <= 40, `${preset.id}: label is too long to be an instrument name`);
+}
+
+// A few known-good shapes, so a future re-extraction cannot quietly rewrite them.
+const labelOf = id => QCAA_PRESETS.find(p => p.id === id)?.label;
+assert.equal(labelOf('qcaa-chemistry-ia1'), 'IA1 Data test', 'Chemistry IA1 is the data test');
+assert.equal(labelOf('qcaa-french-ea'), 'EA', 'French has a single external examination');
+assert.equal(labelOf('qcaa-german-ea'), 'EA', 'German has a single external examination');
+assert.equal(labelOf('qcaa-music-extension-performance-ea'), 'EA', 'Music Extension Performance likewise');
+
 // --- the QCAA external assessment leaving rule ----------------------------
 for (const preset of QCAA_PRESETS.filter(p => p.type === 'EA')) {
   assert.equal(preset.leavingPolicy, 'qcaa-ea-2025', `${preset.id}: EA must use the QCAA leaving policy`);
