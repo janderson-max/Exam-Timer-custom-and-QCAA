@@ -4,7 +4,8 @@
 // importantly, would let the tested code drift away from what the app runs.
 
 const EXAM_COLOURS = ["blue", "purple", "teal", "orange", "rose"];
-const VALID_LEAVING_POLICIES = new Set(["teacher", "qcaa-ea-2025"]);
+// "none" is for exams where nobody leaves early, so there is no window to work out.
+const VALID_LEAVING_POLICIES = new Set(["teacher", "qcaa-ea-2025", "none"]);
 const VALID_TIMING_KINDS = new Set(["perusal", "planning"]);
 
 // "Perusal" is reading only; "planning" allows writing.
@@ -167,7 +168,11 @@ function createExamTimeline(exam, start, directions) {
   };
 
   let leavingStartMs = startMs + Number(normalizedExam.leaveAfterStart) * 60_000;
-  if (normalizedExam.leavingPolicy === "qcaa-ea-2025") {
+  if (normalizedExam.leavingPolicy === "none") {
+    // No window at all, rather than an empty one: null keeps it out of arithmetic and
+    // tells the preview to say so instead of reporting an invalid window.
+    leavingStartMs = null;
+  } else if (normalizedExam.leavingPolicy === "qcaa-ea-2025") {
     leavingStartMs = scheduledClockTime(normalizedExam.eaScheduledStart || "09:00")
       + directions.firstMinutesFromScheduledStart * 60_000;
   } else if (normalizedExam.scheduledPeriodStart) {
@@ -183,7 +188,9 @@ function createExamTimeline(exam, start, directions) {
     aaraFinishMs,
     aaraFinishByRate,
     leavingStartMs,
-    leavingEndMs: finishMs - Number(normalizedExam.noLeaveBeforeEnd) * 60_000,
+    leavingEndMs: leavingStartMs === null
+      ? null
+      : finishMs - Number(normalizedExam.noLeaveBeforeEnd) * 60_000,
   };
 }
 

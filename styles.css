@@ -98,23 +98,7 @@ button { cursor: pointer; }
 .button-danger { background: var(--red); color: white; }
 
 main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
-.room-status {
-  margin-bottom: 18px;
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  border-left: 5px solid var(--green);
-  border-radius: 7px;
-  background: var(--card);
-  box-shadow: var(--shadow);
-}
 .eyebrow { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .13em; }
-.room-status h2 { margin: 3px 0 0; font-size: clamp(1.25rem, 2vw, 1.8rem); }
-.next-event { text-align: right; }
-.next-event span { display: block; color: var(--muted); font-size: .78rem; }
-.next-event strong { font-size: 1rem; }
 
 .exam-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .exam-card { --subject: #286aa6; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-top: 6px solid var(--subject); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
@@ -142,6 +126,13 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .exam-clock-icon { display: block; width: 100%; height: 100%; }
 .exam-clock-button:hover, .exam-clock-button:focus-visible { background: rgba(255,255,255,.28); outline: 3px solid rgba(255,255,255,.35); outline-offset: 2px; }
 .exam-clock-button.is-paused { border-color: #ffe1a0; background: #fff4d6; color: #7a5200; }
+/* Stacked, the pair needs more height than a compact card header has and the lower one
+   spills out of the coloured band, so on a room display they sit side by side. */
+@media (min-width: 921px) {
+  .exam-header-actions { flex-direction: row; top: 10px; right: 12px; gap: 6px; }
+  .exam-clock-button, .exam-edit-button { width: 36px; height: 36px; }
+  .exam-header { padding: 12px 96px 8px 18px; }
+}
 .exam-number { color: rgba(255,255,255,.78); font-size: .72rem; font-weight: 800; letter-spacing: .1em; }
 .exam-header h3 {
   margin: 0;
@@ -152,10 +143,35 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
   word-break: break-word;
 }
 .exam-header p { margin: 0; color: rgba(255,255,255,.84); font-size: .84rem; min-height: 1.1em; line-height: 1.1; }
-.phase { min-height: 146px; padding: 8px 20px 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: var(--green-soft); }
-.phase-label { display: inline-flex; padding: 5px 9px; border-radius: 99px; background: var(--green); color: white; font-size: .7rem; font-weight: 800; letter-spacing: .09em; }
-.phase strong { display: block; margin: 8px 0 0; font-size: clamp(2.25rem, 5vw, 4.5rem); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.055em; }
-.phase small { display: block; margin-top: 5px; color: #416052; }
+.phase { min-height: 146px; padding: 10px 16px 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; text-align: center; background: var(--green-soft); }
+.phase-label { display: inline-flex; flex: 0 0 auto; padding: 5px 9px; border-radius: 99px; background: var(--green); color: white; font-size: clamp(.7rem, .95vw, 1rem); font-weight: 800; letter-spacing: .09em; }
+/* The countdown is the one thing a candidate at the back of a hall has to read, so
+   fitCountdowns() in app.js scales it to fill this slot instead of stopping at a rem
+   cap. It is taken out of flow so the slot keeps its height whatever size the digits
+   end up at, which is what stops the measure/grow/measure loop. */
+.countdown-slot { position: relative; flex: 1 1 auto; align-self: stretch; min-height: 4.4rem; overflow: hidden; }
+/* Once fitted the slot holds exactly the digits, so the pill and the caption sit close
+   to them rather than being pushed out to the edges of the phase band. The fitter
+   drops the class again whenever it needs to re-measure the space on offer. */
+.countdown-slot.is-fitted { flex: 0 0 auto; min-height: 0; }
+.phase .countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateY(var(--countdown-shift, 0px));
+  display: block;
+  margin: 0;
+  font-size: var(--countdown-size, clamp(2.25rem, 5vw, 4.5rem));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.055em;
+  white-space: nowrap;
+}
+.phase small { display: block; flex: 0 0 auto; margin: 0; color: #416052; font-size: clamp(.8rem, 1vw, 1.05rem); }
+/* Off-screen twin the fitter measures at a known size. It sits inside a .phase so it
+   inherits exactly the same font, weight and letter-spacing as the real countdown. */
+.countdown-probe { position: absolute; left: -9999px; top: 0; min-height: 0; padding: 0; visibility: hidden; pointer-events: none; }
+.countdown-probe .countdown { position: static; transform: none; }
 .phase-waiting { background: #eef2f7; }
 .phase-waiting .phase-label { background: #68768b; }
 .phase-waiting small { color: #5f6979; }
@@ -191,13 +207,6 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .aara-time { display: flex; align-items: baseline; justify-content: center; gap: 4px; padding: 5px 6px; border-radius: 5px; background: rgba(255,255,255,.38); white-space: nowrap; }
 .aara-time b { flex: none; font-size: .68rem; }
 .aara strong { font-size: clamp(.8rem, 1.05vw, 1.12rem); font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-.notice-bar { margin-top: 18px; padding: 15px 18px; display: flex; align-items: center; gap: 13px; border-radius: 8px; background: var(--navy-2); color: white; }
-.notice-bar p { margin: 0; font-size: .86rem; }
-.notice-icon { width: 27px; height: 27px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid #9eb1d0; border-radius: 50%; font-weight: 800; }
-.legend { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; color: #d6dfed; font-size: .72rem; }
-.dot { width: 8px; height: 8px; display: inline-block; margin-right: 4px; border-radius: 50%; }
-.dot-blue { background: #64aaf1; }.dot-green { background: #54c590; }.dot-amber { background: #f1b33f; }.dot-red { background: #ee727c; }
 
 .setup-panel { position: fixed; z-index: 20; inset: 0 0 0 auto; width: min(520px, 100%); padding: 25px; overflow-y: auto; transform: translateX(105%); transition: transform .22s ease; background: white; box-shadow: -18px 0 50px rgba(10, 20, 40, .25); }
 .setup-panel.open { transform: translateX(0); }
@@ -238,10 +247,10 @@ input, select { width: 100%; min-height: 42px; border: 1px solid #bfc8d5; border
 .aara-picker legend { padding: 0 3px; color: var(--ink); font-size: .75rem; font-weight: 700; }
 .aara-picker label { min-height: 25px; display: flex; align-items: center; gap: 7px; font-size: .74rem; font-weight: 600; }
 .aara-picker input { width: 17px; height: 17px; min-height: 0; margin: 0; padding: 0; accent-color: var(--navy); }
-.preset-source, .edit-preset-source, .field-note { margin: -4px 0 2px; color: var(--muted); font-size: .72rem; line-height: 1.4; }
+.preset-source, .edit-preset-source, .field-note { margin: -4px 0 4px; color: var(--muted); font-size: .72rem; line-height: 1.35; }
 .preset-source a, .edit-preset-source a { color: #245f9d; }
 .edit-preset-source { margin: -8px 0 6px; }
-.custom-preset-row { display: flex; gap: 8px; margin: 0 0 14px; }
+.custom-preset-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 clamp(7px, 1.5vh, 14px); }
 .custom-preset-row .button { min-height: 32px; padding: 0 12px; font-size: .78rem; }
 .field-note { padding: 8px 10px; border-radius: 5px; background: var(--blue-soft); color: #315f8f; }
 .leaving-preview { padding: 11px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-left: 4px solid var(--green); border-radius: 5px; background: var(--green-soft); }
@@ -257,21 +266,55 @@ input, select { width: 100%; min-height: 42px; border: 1px solid #bfc8d5; border
 dialog { max-width: 420px; border: 0; border-radius: 10px; padding: 24px; box-shadow: 0 25px 70px rgba(0,0,0,.25); }
 dialog::backdrop { background: rgba(10, 19, 36, .55); }
 dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.exam-edit-dialog .dialog-actions { margin-top: clamp(8px, 1.6vh, 16px); }
 .exam-control-dialog { width: min(620px, calc(100% - 28px)); max-width: 620px; }
 .dialog-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .dialog-title-row h2 { margin: 4px 0 0; padding-right: 8px; }
-.exam-edit-dialog { width: min(560px, calc(100% - 28px)); max-width: 560px; }
-.edit-grid { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
-.edit-grid > label { display: grid; gap: 5px; margin: 0 0 14px; font-size: .8rem; font-weight: 700; }
+/* Quick edit runs three short columns rather than one long one, so the whole form is
+   on screen at once. Field heights and gaps follow the viewport, so a laptop-height
+   window loses padding before it starts needing a scrollbar. */
+.exam-edit-dialog {
+  width: min(1060px, calc(100vw - 32px));
+  max-width: 1060px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  padding: clamp(15px, 2.4vh, 24px);
+}
+.edit-grid { margin-top: clamp(8px, 1.6vh, 16px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 22px; align-items: start; }
+.edit-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; align-content: start; }
+.edit-group-title {
+  grid-column: 1 / -1;
+  margin: 0 0 clamp(6px, 1.2vh, 11px);
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .67rem;
+  font-weight: 800;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+/* Paired fields sit in one grid row, so pushing the control onto its own bottom row
+   keeps the two inputs level even when one label wraps and the other does not. */
+.edit-group > label { display: grid; grid-template-rows: 1fr auto; gap: 4px; margin: 0 0 clamp(7px, 1.5vh, 14px); font-size: .78rem; font-weight: 700; }
 .edit-grid .wide { grid-column: 1 / -1; }
-/* .edit-grid > label sets display:grid, which outranks the browser [hidden] rule, so
+.exam-edit-dialog input, .exam-edit-dialog select { min-height: clamp(32px, 5.2vh, 42px); }
+/* .edit-group > label sets display:grid, which outranks the browser [hidden] rule, so
    toggling .hidden on a field would otherwise leave it on screen. */
-.edit-grid > [hidden] { display: none; }
-/* The dialog is narrower than the setup panel, so the window reads better stacked. */
-.exam-edit-dialog .leaving-preview { align-items: flex-start; flex-direction: column; gap: 4px; }
+.edit-grid [hidden] { display: none; }
+/* Each column is about a third of the dialog, so these read better stacked. */
+.exam-edit-dialog .leaving-preview { align-items: flex-start; flex-direction: column; gap: 4px; padding: clamp(7px, 1.3vh, 11px) 12px; }
 .exam-edit-dialog .leaving-preview strong { text-align: left; }
+
+/* Too narrow for three columns without the labels wrapping badly: fall back to two,
+   then to one. Below this the dialog scrolls, which no room display should ever hit. */
+@media (max-width: 940px) {
+  .edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .edit-grid { grid-template-columns: minmax(0, 1fr); }
+}
 .edit-running-note { margin: 16px 0 0; padding: 11px 13px; border-left: 4px solid var(--amber); border-radius: 5px; background: var(--amber-soft); color: #684b13; font-size: .84rem; line-height: 1.45; }
-.combo-field { display: grid; gap: 5px; margin: 0 0 14px; font-size: .8rem; font-weight: 700; }
+.combo-field { display: grid; gap: 4px; margin: 0 0 clamp(7px, 1.5vh, 14px); font-size: .78rem; font-weight: 700; }
 .combo { position: relative; }
 .combo-list {
   position: absolute;
@@ -298,7 +341,7 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
 .edit-actions { align-items: center; }
 .edit-actions .button:disabled { border-color: var(--line); background: #f4f5f7; color: #9aa2b1; cursor: not-allowed; }
 .edit-actions-gap { flex: 1 1 auto; }
-.edit-note { margin: 2px 0 0; color: var(--muted); font-size: .78rem; }
+.edit-note { margin: clamp(4px, 1vh, 10px) 0 0; color: var(--muted); font-size: .75rem; line-height: 1.4; }
 .control-status { margin: 18px 0 8px; padding: 11px 13px; border-left: 4px solid var(--amber); border-radius: 5px; background: var(--amber-soft); color: #684b13; font-weight: 750; }
 .control-warning { margin: 0 0 17px; color: var(--muted); font-size: .82rem; line-height: 1.45; }
 .control-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -326,8 +369,6 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
 @media (max-width: 620px) {
   .topbar { display: flex; flex-direction: column; text-align: center; gap: 14px; }
   .header-actions { justify-content: center; flex-wrap: wrap; }.date-block { order: 2; }.clock-block { order: 1; }.header-actions { order: 3; }
-  .room-status, .notice-bar { align-items: flex-start; flex-direction: column; }
-  .next-event { text-align: left; }.legend { margin-left: 0; justify-content: flex-start; }
   .exam-card { display: block; }.editor-grid { grid-template-columns: 1fr; }.editor-grid .wide { grid-column: auto; }
   .timeline-row strong { font-size: 1.35rem; }
   .leaving-preview { align-items: flex-start; flex-direction: column; }
@@ -337,62 +378,142 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .control-pause-all { grid-column: auto; }
 }
 
-@media (min-width: 921px) {
-  /* A single exam has the whole width to itself, so the title and countdown sit on
-     the left and the timings on the right instead of stacking down a narrow column.
-     These selectors are specific enough to win over the :fullscreen card rules. */
-  .exam-grid[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
-  .exam-grid[data-count="1"] .exam-card {
+@media (min-width: 921px) and (min-height: 430px) {
+  /* Room-display layout. The page fills the window whether or not the browser is in
+     fullscreen, because the timer is just as likely to be shown on a maximised window
+     on a projector as in true fullscreen. Nothing scrolls: the exam grid takes every
+     pixel the header and status line do not need, and the countdown fitter spends it.
+     The chrome is sized in vh as well as vw, so a short window — or a display running
+     at 150% scaling, which comes to the same thing — still fits. */
+  html { height: 100%; }
+  body { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+  .topbar {
+    min-height: 0;
+    padding-top: clamp(6px, 1.4vh, 20px);
+    padding-bottom: clamp(6px, 1.4vh, 20px);
+    row-gap: clamp(4px, .9vh, 10px);
+  }
+  .clock-block strong { font-size: clamp(1.7rem, min(4.6vw, 9vh), 5.4rem); }
+  /* One row per child of <main>. A third child would land in an implicit row, overflow
+     the viewport and squeeze the exam grid until the timeline rows draw over each other. */
+  /* The exam grid is the only child of <main> now, and it takes the lot. */
+  main {
+    min-height: 0;
+    padding: clamp(8px, 1.5vh, 18px) clamp(18px, 2.2vw, 40px) clamp(10px, 1.7vh, 20px);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .exam-grid { min-height: 0; gap: clamp(9px, 1.2vw, 14px); }
+  .exam-card { min-height: 0; display: flex; flex-direction: column; }
+  .exam-header { min-height: 0; flex: 0 0 auto; }
+  /* The countdown gets the slack in the card, not the timings list. The floor stops a
+     short window shrinking the band to a sliver, and the clip is a last-ditch guard so
+     the digits can never be drawn over the timings below. */
+  .phase {
+    min-height: clamp(84px, 14vh, 160px);
+    flex: 1 1 auto;
+    overflow: hidden;
+    gap: clamp(2px, .6vh, 6px);
+    padding: clamp(5px, 1vh, 12px) 16px clamp(6px, 1.2vh, 14px);
+  }
+  .countdown-slot { min-height: clamp(1.6rem, 5vh, 3rem); }
+  /* The timings take a real share of the card rather than only what they need, which
+     keeps the coloured band tight around the digits and lets these times run large. */
+  .timeline { min-height: 0; flex: .85 1 auto; grid-auto-rows: minmax(0, 1fr); align-content: stretch; overflow: hidden; padding: clamp(2px, .7vh, 9px) 16px; }
+  .timeline-row { min-height: 0; padding: clamp(1px, .3vh, 3px) 0; }
+  .aara { flex: 0 0 auto; margin: 0 16px clamp(5px, 1.1vh, 12px); padding: clamp(4px, .8vh, 9px) 12px; gap: clamp(2px, .5vh, 6px) 12px; }
+  /* Card padding follows the viewport too, so a short window loses whitespace before
+     it starts losing the countdown. */
+  .exam-header { padding: clamp(6px, 1.2vh, 14px) 96px clamp(4px, .9vh, 9px) 18px; }
+
+  /* Everything that eats vertical space is capped in vh as well as vw. On a 16:9
+     window the two terms match; on anything shorter the vh term takes over and the
+     whole card scales down rather than overflowing. */
+  .exam-number { font-size: clamp(.6rem, min(.8vw, 1.4vh), .78rem); }
+  .exam-grid .exam-card .exam-header h3 { font-size: clamp(1rem, min(1.65vw, 2.95vh), 1.5rem); line-height: 1.1; }
+  .exam-header p { font-size: clamp(.68rem, min(.95vw, 1.7vh), .9rem); }
+  .phase-label { font-size: clamp(.6rem, min(.95vw, 1.7vh), 1rem); padding: clamp(3px, .55vh, 6px) clamp(7px, .7vw, 11px); }
+  .phase small { font-size: clamp(.68rem, min(1vw, 1.8vh), 1.05rem); }
+  .exam-grid .exam-card .timeline-row span { font-size: clamp(.66rem, min(1.3vw, 2.3vh), 1.6rem); }
+  .exam-grid .exam-card .timeline-row strong { font-size: clamp(.92rem, min(2.15vw, 3.8vh), 2.9rem); }
+  .exam-grid .exam-card .aara-title { font-size: clamp(.56rem, min(.7vw, 1.25vh), .7rem); }
+  .exam-grid .exam-card .aara-time b { font-size: clamp(.56rem, min(.72vw, 1.3vh), .72rem); }
+  .exam-grid .exam-card .aara strong { font-size: clamp(.78rem, min(1.15vw, 2.05vh), 1.15rem); }
+
+  /* Side-by-side cards share one set of rows, so the coloured phase bands line up
+     across the wall even when one exam has an AARA box and its neighbour does not.
+     Without subgrid the cards simply fall back to sizing themselves. */
+  @supports (grid-template-rows: subgrid) {
+    .exam-grid:not([data-count="1"]) { grid-template-rows: auto minmax(0, 1fr) .85fr auto; }
+    .exam-grid:not([data-count="1"]) .exam-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; }
+    /* No AARA box to sit in the last row, so the timings spread into it. */
+    .exam-grid:not([data-count="1"]) .exam-card:not(.has-aara) .timeline { grid-row: 3 / span 2; }
+  }
+}
+
+@media (min-width: 921px) {
+  .exam-grid[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* A single exam keeps the split card: name and countdown down the left, the timings
+     stacked in their own column on the right. The countdown fitter fills the left half,
+     so the digits still grow to whatever that half can hold. */
+  .exam-grid[data-count="1"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .exam-grid[data-count="1"] .exam-card {
+    grid-row: auto;
+    display: grid;
+    /* The digits need the width more than the timings do. */
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
-  .exam-grid[data-count="1"] .exam-header { grid-column: 1; grid-row: 1; }
-  .exam-grid[data-count="1"] .phase { grid-column: 1; grid-row: 2 / -1; }
-  .exam-grid[data-count="1"] .timeline { grid-column: 2; grid-row: 1 / 3; }
-  .exam-grid[data-count="1"] .aara { grid-column: 2; grid-row: 3; margin: 0 20px 18px; }
+  .exam-grid[data-count="1"] .exam-header { grid-column: 1; grid-row: 1; padding: 12px 100px 8px 22px; }
+  .exam-grid[data-count="1"] .exam-card .exam-header h3 { min-height: 0; font-size: clamp(1.1rem, min(1.95vw, 3.45vh), 2.4rem); }
+  .exam-grid[data-count="1"] .exam-header p { font-size: clamp(.78rem, min(1.05vw, 1.85vh), 1.25rem); }
+  .exam-grid[data-count="1"] .exam-number { font-size: clamp(.62rem, min(.8vw, 1.4vh), .95rem); }
+  .exam-grid[data-count="1"] .phase { grid-column: 1; grid-row: 2 / -1; gap: 12px; padding: 10px 20px 14px; }
+  .exam-grid[data-count="1"] .phase-label { font-size: clamp(.8rem, min(1.45vw, 2.6vh), 1.8rem); padding: clamp(4px, .7vh, 8px) clamp(11px, 1vw, 18px); }
+  .exam-grid[data-count="1"] .phase small { font-size: clamp(.8rem, min(1.3vw, 2.3vh), 1.6rem); }
+  /* The timings own a tall column of their own, so the rows share it out evenly and
+     the rules between them land at even intervals instead of hugging each label. */
+  .exam-grid[data-count="1"] .timeline {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    padding: 10px 22px;
+    grid-auto-rows: minmax(0, 1fr);
+    align-content: stretch;
+  }
   /* With no AARA box the timings take the full height of the right-hand column. */
   .exam-grid[data-count="1"] .exam-card:not(.has-aara) .timeline { grid-row: 1 / -1; }
-  .exam-grid[data-count="1"] .phase strong { font-size: clamp(3.4rem, 7.5vw, 8rem); }
-  .exam-grid[data-count="1"] .exam-card .timeline-row span { font-size: clamp(.95rem, 1.35vw, 1.35rem); }
-  .exam-grid[data-count="1"] .exam-card .timeline-row strong { font-size: clamp(1.45rem, 2.4vw, 2.5rem); }
-  .exam-grid[data-count="1"] .exam-card .aara-title { font-size: .78rem; }
-  .exam-grid[data-count="1"] .exam-card .aara-time b { font-size: .82rem; }
-  .exam-grid[data-count="1"] .exam-card .aara strong { font-size: clamp(1.15rem, 1.8vw, 1.8rem); }
-  .exam-grid[data-count="1"] .phase-label { font-size: .82rem; padding: 7px 13px; }
-  .exam-grid[data-count="1"] .phase small { font-size: .95rem; }
-  .exam-grid[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  :fullscreen { overflow: hidden; }
-  :fullscreen body { height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
-  :fullscreen .topbar { min-height: 88px; padding-top: 10px; padding-bottom: 10px; }
-  :fullscreen .clock-block strong { font-size: clamp(2.7rem, 4.4vw, 4.4rem); }
-  /* One row per child of <main>. A fourth child lands in an implicit row, overflows
-     100vh and squeezes the exam grid until the timeline rows draw over each other. */
-  :fullscreen main { min-height: 0; padding: 12px 28px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
-  :fullscreen .room-status { min-height: 0; margin: 0; padding: 7px 16px; }
-  /* Both halves on one line each, rather than a label stacked above its value. */
-  :fullscreen .room-status > div:first-child { display: flex; align-items: baseline; gap: 12px; }
-  :fullscreen .next-event { display: flex; align-items: baseline; gap: 10px; }
+  .exam-grid[data-count="1"] .exam-card .timeline-row span { font-size: clamp(.8rem, min(1.5vw, 2.65vh), 1.9rem); line-height: 1.15; }
+  .exam-grid[data-count="1"] .exam-card .timeline-row strong { font-size: clamp(1.05rem, min(2.4vw, 4.25vh), 3.1rem); }
+  .exam-grid[data-count="1"] .aara { grid-column: 2; grid-row: 3; margin: 0 22px 16px; }
+  .exam-grid[data-count="1"] .exam-card .aara-title { font-size: clamp(.6rem, min(.85vw, 1.5vh), .95rem); }
+  .exam-grid[data-count="1"] .exam-card .aara-time b { font-size: clamp(.6rem, min(.85vw, 1.5vh), 1rem); }
+  .exam-grid[data-count="1"] .exam-card .aara strong { font-size: clamp(.9rem, min(1.7vw, 3vh), 1.9rem); }
 
-  :fullscreen .topbar { row-gap: 6px; }
-  /* Keep the header short in fullscreen; the cards need the height more than the clock does. */
-  :fullscreen .clock-block strong { font-size: clamp(2rem, 3.8vw, 3.6rem); }
-  :fullscreen .room-status h2 { font-size: 1.45rem; }
-  :fullscreen .exam-grid { min-height: 0; gap: 14px; }
-  :fullscreen .exam-card { min-height: 0; display: flex; flex-direction: column; }
-  :fullscreen .exam-header { min-height: 92px; padding: 8px 58px 6px 16px; }
-  :fullscreen .exam-header-actions { top: 9px; right: 9px; gap: 6px; }
-  :fullscreen .exam-clock-button, :fullscreen .exam-edit-button { width: 38px; height: 38px; }
-  :fullscreen .exam-header h3 { margin: 0; min-height: 2.1em; font-size: clamp(1.12rem, 1.6vw, 1.5rem); line-height: 1.1; }
-  :fullscreen .phase { min-height: 96px; padding: 6px 16px 8px; }
-  :fullscreen .phase strong { margin-top: 4px; font-size: clamp(2.5rem, 4.4vw, 4.6rem); }
-  :fullscreen .exam-grid[data-count="1"] .phase strong { font-size: clamp(4rem, 9.5vw, 11rem); }
-  :fullscreen .phase small { margin-top: 1px; }
-  :fullscreen .timeline { min-height: 0; padding: 3px 16px; display: grid; grid-auto-rows: 1fr; overflow: hidden; }
-  :fullscreen .timeline-row { min-height: 0; }
-  :fullscreen .timeline-row span { font-size: clamp(.8rem, 1vw, 1rem); }
-  :fullscreen .timeline-row strong { font-size: clamp(1.15rem, 1.65vw, 1.65rem); }
-  :fullscreen .aara { margin: 0 16px 9px; padding: 7px 10px; }
-  :fullscreen .aara { gap: 4px 12px; }
-  :fullscreen .notice-bar { min-height: 48px; margin: 0; padding: 8px 14px; }
+  /* Two exams still have room for a generous label under the digits. */
+  .exam-grid[data-count="2"] .phase-label { font-size: clamp(.7rem, min(1.2vw, 2.15vh), 1.4rem); padding: clamp(4px, .6vh, 7px) clamp(9px, .8vw, 15px); }
+  .exam-grid[data-count="2"] .phase small { font-size: clamp(.72rem, min(1.15vw, 2.05vh), 1.3rem); }
+  .exam-grid[data-count="2"] .exam-card .timeline-row span { font-size: clamp(.7rem, min(1.35vw, 2.4vh), 1.8rem); }
+  .exam-grid[data-count="2"] .exam-card .timeline-row strong { font-size: clamp(.98rem, min(2.3vw, 4.05vh), 3.2rem); }
+
+  /* Fullscreen only has to claw back the chrome; the layout above already fills. */
+  :fullscreen .topbar { min-height: 78px; padding-top: 8px; padding-bottom: 8px; row-gap: 6px; }
+  :fullscreen .clock-block strong { font-size: clamp(2rem, 3.6vw, 3.6rem); }
+  :fullscreen main { padding: 10px 24px 12px; }
+  :fullscreen .exam-header { padding: 8px 90px 6px 16px; }
+  :fullscreen .exam-header-actions { top: 8px; right: 10px; gap: 6px; }
+  :fullscreen .exam-clock-button, :fullscreen .exam-edit-button { width: 34px; height: 34px; }
+  :fullscreen .exam-header h3 { margin: 0; font-size: clamp(1.12rem, 1.6vw, 1.5rem); line-height: 1.1; }
+  :fullscreen .exam-grid[data-count="1"] .exam-header { padding: 9px 94px 6px 18px; }
+  :fullscreen .phase { padding: 6px 16px 8px; }
+  :fullscreen .timeline { padding: 3px 16px; }
+  :fullscreen .aara { margin: 0 16px 9px; gap: 4px 12px; padding: 7px 10px; }
+  :fullscreen .exam-grid[data-count="1"] .aara { margin: 0 18px 10px; }
+  :fullscreen .exam-grid { gap: 12px; }
+}
+
+/* Below 620px of viewport height the fill layout would crush the cards, so the page
+   falls back to scrolling and the countdown keeps a sensible minimum. */
+@media (min-width: 921px) and (max-height: 619px) {
+  .countdown-slot { min-height: 3.4rem; }
 }

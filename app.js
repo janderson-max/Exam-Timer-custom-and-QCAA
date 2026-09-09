@@ -345,6 +345,129 @@ function updateExamControlDialog() {
   examControlDialog.querySelector('[data-control-action="resume"][data-control-scope="all"]').disabled = !exams.some(item => item.runtime?.pausedAt);
 }
 
+/* --- countdown auto-fit ---------------------------------------------------
+   The countdown is read from the back of a hall, so it is sized to fill the space
+   its card can spare rather than stopping at a fixed rem cap that knows nothing
+   about how many exams are running, how wide the screen is, or whether the seconds
+   are showing. Every step degrades to the CSS clamp fallback when there is no
+   layout to measure. */
+
+const COUNTDOWN_PROBE_SIZE = 100;
+const COUNTDOWN_MIN_SIZE = 18;
+// Breathing room, so a glyph's side bearings never touch the edge of the slot.
+const COUNTDOWN_WIDTH_FILL = 0.97;
+const COUNTDOWN_HEIGHT_FILL = 0.94;
+const countdownMetricsCache = new Map();
+let countdownProbe = null;
+let countdownInkContext = null;
+let countdownFitFrame = 0;
+let countdownSlotObserver = null;
+
+// Tabular figures share one advance width, so a single measurement per shape of
+// string — "8:88:88", "88:88" — covers every tick that phase will ever draw.
+function countdownShape(text) {
+  return String(text ?? "").replace(/[0-9]/g, "8");
+}
+
+function countdownProbeElement() {
+  if (countdownProbe) return countdownProbe;
+  if (typeof document.createElement !== "function" || !document.body) return null;
+  const probe = document.createElement("div");
+  probe.className = "phase countdown-probe";
+  probe.setAttribute("aria-hidden", "true");
+  const digits = document.createElement("strong");
+  digits.className = "countdown";
+  probe.appendChild(digits);
+  document.body.appendChild(probe);
+  countdownProbe = probe;
+  return countdownProbe;
+}
+
+// How tall the digits themselves are, and how far their optical centre sits from the
+// centre of a line-height:1 box, so the fitted text can be nudged back to the middle.
+function countdownInk(sample) {
+  const fallback = { ink: 0.74, shift: 0 };
+  try {
+    if (!countdownInkContext) countdownInkContext = document.createElement("canvas").getContext("2d");
+    const style = window.getComputedStyle(sample);
+    if (!countdownInkContext || !style) return fallback;
+    countdownInkContext.font = `${style.fontStyle} ${style.fontWeight} ${COUNTDOWN_PROBE_SIZE}px ${style.fontFamily}`;
+    const box = countdownInkContext.measureText("0123456789");
+    const inkTop = box.actualBoundingBoxAscent;
+    const inkBottom = box.actualBoundingBoxDescent;
+    if (!(inkTop > 0)) return fallback;
+    const fontTop = box.fontBoundingBoxAscent;
+    const fontBottom = box.fontBoundingBoxDescent;
+    const shift = Number.isFinite(fontTop) && Number.isFinite(fontBottom)
+      ? ((fontTop - fontBottom) + (inkBottom - inkTop)) / (2 * COUNTDOWN_PROBE_SIZE)
+      : 0;
+    return { ink: (inkTop + inkBottom) / COUNTDOWN_PROBE_SIZE, shift };
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function countdownMetrics(text) {
+  const shape = countdownShape(text) || "8:88:88";
+  const cached = countdownMetricsCache.get(shape);
+  if (cached) return cached;
+  const probe = countdownProbeElement();
+  if (!probe) return null;
+  const digits = probe.firstElementChild;
+  digits.style.fontSize = `${COUNTDOWN_PROBE_SIZE}px`;
+  digits.textContent = shape;
+  const width = digits.getBoundingClientRect().width / COUNTDOWN_PROBE_SIZE;
+  if (!(width > 0)) return null;
+  const metrics = { width, ...countdownInk(digits) };
+  countdownMetricsCache.set(shape, metrics);
+  return metrics;
+}
+
+function fitCountdown(card) {
+  if (!card || typeof card.querySelector !== "function") return;
+  const slot = card.querySelector(".countdown-slot");
+  const digits = card.querySelector(".countdown");
+  if (!slot || !digits) return;
+  const metrics = countdownMetrics(digits.textContent);
+  if (!metrics) return;
+  // Let the slot spring back to the space the card can spare, then measure that. The
+  // whole cycle runs inside one animation frame, so the resize observer only ever sees
+  // the settled size and cannot chase itself round in a loop.
+  slot.classList.remove("is-fitted");
+  slot.style.removeProperty("height");
+  const room = { width: slot.clientWidth, height: slot.clientHeight };
+  if (!(room.width > 0) || !(room.height > 0)) return;
+  const size = Math.round(Math.max(COUNTDOWN_MIN_SIZE, Math.min(
+    (room.width * COUNTDOWN_WIDTH_FILL) / metrics.width,
+    (room.height * COUNTDOWN_HEIGHT_FILL) / metrics.ink,
+  )));
+  slot.style.height = `${Math.min(room.height, Math.ceil((size * metrics.ink) / COUNTDOWN_HEIGHT_FILL))}px`;
+  slot.classList.add("is-fitted");
+  card.style.setProperty("--countdown-size", `${size}px`);
+  card.style.setProperty("--countdown-shift", `${(-metrics.shift * size).toFixed(1)}px`);
+}
+
+function fitCountdowns() {
+  countdownFitFrame = 0;
+  if (typeof examGrid.querySelectorAll !== "function") return;
+  Array.prototype.forEach.call(examGrid.querySelectorAll(".exam-card"), fitCountdown);
+}
+
+function scheduleCountdownFit() {
+  if (typeof requestAnimationFrame !== "function") { fitCountdowns(); return; }
+  if (countdownFitFrame) return;
+  countdownFitFrame = requestAnimationFrame(fitCountdowns);
+}
+
+// A slot changes size when the window resizes, when fullscreen toggles, when an exam
+// is added or removed, and when an AARA box appears. One observer covers the lot.
+function watchCountdownSlots() {
+  if (typeof ResizeObserver !== "function" || typeof examGrid.querySelectorAll !== "function") return;
+  if (!countdownSlotObserver) countdownSlotObserver = new ResizeObserver(scheduleCountdownFit);
+  countdownSlotObserver.disconnect();
+  Array.prototype.forEach.call(examGrid.querySelectorAll(".countdown-slot"), slot => countdownSlotObserver.observe(slot));
+}
+
 function renderCards() {
   const start = getBaseDate();
   examGrid.dataset.count = String(exams.length);
@@ -369,7 +492,7 @@ function renderCards() {
         </header>
         <div class="phase phase-waiting">
           <span class="phase-label">WAITING</span>
-          <strong class="countdown">0:00:00</strong>
+          <div class="countdown-slot"><strong class="countdown">0:00:00</strong></div>
           <small class="countdown-caption">until exam begins</small>
         </div>
         <div class="timeline">
@@ -394,8 +517,10 @@ function renderCards() {
   document.querySelector("#addExamFromDisplay").disabled = exams.length >= 3;
 
   const first = exams[0];
-  document.querySelector("#nextEvent").textContent = `10-minute warning at ${formatExamTime(new Date(examTimes(first, start).warningMs))}`;
+  setStatusText("#nextEvent", `10-minute warning at ${formatExamTime(new Date(examTimes(first, start).warningMs))}`);
   updateSessionState();
+  watchCountdownSlots();
+  scheduleCountdownFit();
 }
 
 function updateSessionState(now = new Date()) {
@@ -407,6 +532,7 @@ function updateSessionState(now = new Date()) {
   let hasAara = false;
   let hasWaiting = false;
   let hasPaused = false;
+  let refitCountdowns = false;
 
   exams.forEach((exam, index) => {
     const card = examGrid.querySelector(`[data-exam-index="${index}"]`);
@@ -467,9 +593,18 @@ function updateSessionState(now = new Date()) {
     countdown.textContent = formatRemaining(remaining, !hideTimerSeconds);
     caption.textContent = phaseCaption;
 
+    // "1:00:00" needs more width than "59:59", so the fit is redone when the shape of
+    // the string changes rather than on every tick.
+    const shape = countdownShape(countdown.textContent);
+    if (card.dataset.countdownShape !== shape) {
+      card.dataset.countdownShape = shape;
+      refitCountdowns = true;
+    }
   });
 
-  document.querySelector("#roomHeading").textContent = hasPaused
+  if (refitCountdowns) scheduleCountdownFit();
+
+  setStatusText("#roomHeading", hasPaused
     ? "One or more exam timers paused"
     : hasWorking
     ? "Working time in progress"
@@ -479,14 +614,21 @@ function updateSessionState(now = new Date()) {
         ? "AARA extra time in progress"
         : hasWaiting
           ? "Exams have not started"
-          : "All exams have finished";
+          : "All exams have finished");
 
   upcomingEvents.sort((a, b) => a.time - b.time);
-  document.querySelector("#nextEvent").textContent = upcomingEvents.length
+  setStatusText("#nextEvent", upcomingEvents.length
     ? `${upcomingEvents[0].label} at ${formatExamTime(new Date(upcomingEvents[0].time))}`
     : hasPaused
       ? "Paused — use an exam clock to continue"
-      : "No further scheduled events";
+      : "No further scheduled events");
+}
+
+// The room-status banner was dropped so the cards could have its height. The wording is
+// still worked out above, so putting the banner back is a markup change and nothing more.
+function setStatusText(selector, text) {
+  const target = document.querySelector(selector);
+  if (target) target.textContent = text;
 }
 
 
@@ -698,7 +840,17 @@ function examEditDraft() {
 function updateEditLeavingPreview() {
   const preview = document.querySelector("#editLeavingPreview");
   const draft = examEditDraft();
-  const complete = [draft.perusal, draft.working, draft.leaveAfterStart, draft.noLeaveBeforeEnd].every(Number.isFinite);
+  if (draft.leavingPolicy === "none") {
+    preview.textContent = "No leaving window — candidates stay for the whole exam";
+    preview.classList.remove("invalid-window");
+    return;
+  }
+  // The two offsets only exist under the teacher-defined policy; the others work their
+  // own window out, so an empty field there is not an incomplete form.
+  const required = draft.leavingPolicy === "teacher"
+    ? [draft.perusal, draft.working, draft.leaveAfterStart, draft.noLeaveBeforeEnd]
+    : [draft.perusal, draft.working];
+  const complete = required.every(Number.isFinite);
   if (!complete) {
     preview.textContent = "Complete the timing fields";
     preview.classList.add("invalid-window");
@@ -715,15 +867,17 @@ function updateEditLeavingPreview() {
   preview.classList.remove("invalid-window");
 }
 
-// The QCAA policy fixes its own window, so its two figures are shown as a note
-// rather than as editable fields.
+// The QCAA policy fixes its own window, so its two figures are shown as a note rather
+// than as editable fields, and "no window" needs none of them.
 function syncEditLeavingFields() {
-  const isQcaa = document.querySelector("#editLeavingPolicy").value === "qcaa-ea-2025";
+  const policy = document.querySelector("#editLeavingPolicy").value;
+  const isQcaa = policy === "qcaa-ea-2025";
+  const isNone = policy === "none";
   document.querySelector("#editEaSessionField").hidden = !isQcaa;
-  document.querySelector("#editPeriodField").hidden = isQcaa;
+  document.querySelector("#editPeriodField").hidden = isQcaa || isNone;
   document.querySelector("#editEaLeavingNote").hidden = !isQcaa;
-  document.querySelector("#editLeaveAfterField").hidden = isQcaa;
-  document.querySelector("#editNoLeaveBeforeField").hidden = isQcaa;
+  document.querySelector("#editLeaveAfterField").hidden = isQcaa || isNone;
+  document.querySelector("#editNoLeaveBeforeField").hidden = isQcaa || isNone;
   updateEditLeavingPreview();
 }
 
@@ -1203,3 +1357,18 @@ updateStartTimeControls();
 renderCards();
 updateClock();
 setInterval(updateClock, 1000);
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("resize", scheduleCountdownFit);
+  window.addEventListener("orientationchange", scheduleCountdownFit);
+}
+if (typeof document.addEventListener === "function") {
+  document.addEventListener("fullscreenchange", scheduleCountdownFit);
+}
+// Digit widths move if the preferred font only arrives after the first paint.
+if (document.fonts && typeof document.fonts.ready?.then === "function") {
+  document.fonts.ready.then(() => {
+    countdownMetricsCache.clear();
+    scheduleCountdownFit();
+  });
+}

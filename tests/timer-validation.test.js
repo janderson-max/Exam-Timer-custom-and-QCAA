@@ -96,6 +96,22 @@ assert.equal(
   'QCAA leaving opens 40 minutes after the scheduled start, not the actual start',
 );
 
+// "No leaving window" reports no window rather than an empty or invalid one, and it
+// does not need the two teacher-defined offsets to be filled in.
+const noWindow = createExamTimeline(
+  { ...SAMPLE_EXAM, leavingPolicy: 'none' },
+  START,
+  QCAA_EA_DIRECTIONS,
+);
+assert.equal(noWindow.leavingStartMs, null, 'the no-window policy reports no leaving start');
+assert.equal(noWindow.leavingEndMs, null, 'the no-window policy reports no leaving end');
+assert.equal(noWindow.finishMs, at(10, 35), 'the no-window policy leaves the working times alone');
+assert.equal(
+  validateExam({ name: 'No leaving', perusal: 5, working: 90, leavingPolicy: 'none' }),
+  true,
+  'the no-window policy does not require the two leaving offsets',
+);
+
 // --- countdown formatting -------------------------------------------------
 assert.equal(formatRemaining(90 * 60_000, true), '1:30:00', 'full format shows hours, minutes and seconds');
 assert.equal(formatRemaining(59_000, true), '0:00:59', 'the final minute counts down in seconds');
