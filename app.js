@@ -423,11 +423,10 @@ function countdownMetrics(text) {
   return metrics;
 }
 
-function fitCountdown(card) {
-  if (!card || typeof card.querySelector !== "function") return;
-  const slot = card.querySelector(".countdown-slot");
-  const digits = card.querySelector(".countdown");
-  if (!slot || !digits) return;
+function fitCountdown(slot) {
+  if (!slot || typeof slot.querySelector !== "function") return;
+  const digits = slot.querySelector(".countdown");
+  if (!digits || slot.hidden) return;
   const metrics = countdownMetrics(digits.textContent);
   if (!metrics) return;
   // Let the slot spring back to the space the card can spare, then measure that. The
@@ -443,14 +442,14 @@ function fitCountdown(card) {
   )));
   slot.style.height = `${Math.min(room.height, Math.ceil((size * metrics.ink) / COUNTDOWN_HEIGHT_FILL))}px`;
   slot.classList.add("is-fitted");
-  card.style.setProperty("--countdown-size", `${size}px`);
-  card.style.setProperty("--countdown-shift", `${(-metrics.shift * size).toFixed(1)}px`);
+  slot.style.setProperty("--countdown-size", `${size}px`);
+  slot.style.setProperty("--countdown-shift", `${(-metrics.shift * size).toFixed(1)}px`);
 }
 
 function fitCountdowns() {
   countdownFitFrame = 0;
   if (typeof examGrid.querySelectorAll !== "function") return;
-  Array.prototype.forEach.call(examGrid.querySelectorAll(".exam-card"), fitCountdown);
+  Array.prototype.forEach.call(examGrid.querySelectorAll(".countdown-slot"), fitCountdown);
 }
 
 function scheduleCountdownFit() {
@@ -492,8 +491,18 @@ function renderCards() {
         </header>
         <div class="phase phase-waiting">
           <span class="phase-label">WAITING</span>
-          <div class="countdown-slot"><strong class="countdown">0:00:00</strong></div>
-          <small class="countdown-caption">until exam begins</small>
+          <div class="countdown-slot standard-countdown"><strong class="countdown">0:00:00</strong></div>
+          <small class="countdown-caption standard-countdown">until exam begins</small>
+          ${selectedAaraRates.length ? `
+          <div class="aara-countdowns" hidden>
+            ${selectedAaraRates.map(rate => `
+              <section class="aara-countdown-group" data-aara-rate="${rate}" aria-label="AARA +${rate}/30">
+                <strong class="aara-group-label">AARA +${rate}/30</strong>
+                <div class="countdown-slot"><strong class="countdown">0:00:00</strong></div>
+                <strong class="aara-group-finished" hidden>FINISHED</strong>
+                <small class="aara-group-status">remaining</small>
+              </section>`).join("")}
+          </div>` : ""}
         </div>
         <div class="timeline">
           ${exam.perusal ? `
@@ -544,6 +553,8 @@ function updateSessionState(now = new Date()) {
     const times = examTimes(exam);
     const isPaused = Boolean(exam.runtime?.pausedAt);
     const phaseNowMs = isPaused ? Number(exam.runtime.pausedAt) : nowMs;
+    const selectedAaraRates = aaraRates(exam);
+    const showAaraCountdowns = selectedAaraRates.length > 0 && phaseNowMs >= times.finishMs;
     let remaining = 0;
     let phaseName = "FINISHED";
     let phaseClass = "phase-finished";
@@ -572,13 +583,16 @@ function updateSessionState(now = new Date()) {
       remaining = times.finishMs - phaseNowMs;
       if (!isPaused && phaseNowMs < times.warningMs) upcomingEvents.push({ time: times.warningMs, label: `${exam.name} 10-minute warning` });
       if (!isPaused) upcomingEvents.push({ time: times.finishMs, label: `${exam.name} working time finishes` });
-    } else if (aaraRates(exam).length > 0 && phaseNowMs < times.aaraFinishMs) {
+    } else if (selectedAaraRates.length > 0 && phaseNowMs < times.aaraFinishMs) {
       hasAara = true;
       phaseName = "AARA EXTRA TIME";
       phaseClass = "phase-aara";
       phaseCaption = "remaining for approved students";
       remaining = times.aaraFinishMs - phaseNowMs;
-      if (!isPaused) upcomingEvents.push({ time: times.aaraFinishMs, label: `${exam.name} AARA time finishes` });
+      if (!isPaused) selectedAaraRates.forEach(rate => {
+        const finish = times.aaraFinishByRate[rate];
+        if (phaseNowMs < finish) upcomingEvents.push({ time: finish, label: `${exam.name} AARA +${rate}/30 finishes` });
+      });
     }
 
     if (isPaused) {
@@ -593,9 +607,28 @@ function updateSessionState(now = new Date()) {
     countdown.textContent = formatRemaining(remaining, !hideTimerSeconds);
     caption.textContent = phaseCaption;
 
+    // Each approved group owns its countdown and finish notice. In particular,
+    // reaching +5/30 must never leave that group looking at the +10/30 countdown.
+    card.querySelectorAll(".standard-countdown").forEach(element => { element.hidden = showAaraCountdowns; });
+    const aaraCountdowns = card.querySelector(".aara-countdowns");
+    if (aaraCountdowns) aaraCountdowns.hidden = !showAaraCountdowns;
+    const groupShapes = [];
+    card.querySelectorAll(".aara-countdown-group").forEach(group => {
+      const rate = Number(group.dataset.aaraRate);
+      const groupRemaining = times.aaraFinishByRate[rate] - phaseNowMs;
+      const finished = showAaraCountdowns && groupRemaining <= 0;
+      const groupCountdown = group.querySelector(".countdown");
+      groupCountdown.textContent = formatRemaining(groupRemaining, !hideTimerSeconds);
+      group.querySelector(".countdown-slot").hidden = finished;
+      group.querySelector(".aara-group-finished").hidden = !finished;
+      group.querySelector(".aara-group-status").textContent = finished ? "Stop writing" : isPaused ? "timer paused" : "remaining";
+      group.classList.toggle("is-finished", finished);
+      groupShapes.push(`${rate}:${finished}:${countdownShape(groupCountdown.textContent)}`);
+    });
+
     // "1:00:00" needs more width than "59:59", so the fit is redone when the shape of
     // the string changes rather than on every tick.
-    const shape = countdownShape(countdown.textContent);
+    const shape = `${showAaraCountdowns}:${phaseName}:${countdownShape(countdown.textContent)}:${groupShapes.join("|")}`;
     if (card.dataset.countdownShape !== shape) {
       card.dataset.countdownShape = shape;
       refitCountdowns = true;

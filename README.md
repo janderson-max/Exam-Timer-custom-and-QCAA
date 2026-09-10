@@ -18,7 +18,7 @@ Fixed start-time choices apply immediately. The editable time field and current-
 
 Custom exams can be saved into a separate reusable preset library in the browser. Saved options can be selected, updated or deleted in later sessions.
 
-Both 5-minutes-per-30 and 10-minutes-per-30 AARA groups can be enabled for the same exam, with a separate finish time shown for each group.
+Both 5-minutes-per-30 and 10-minutes-per-30 AARA groups can be enabled for the same exam, with a separate finish time shown for each group. After normal working time, each group has its own labelled countdown. Each changes to **FINISHED / Stop writing** at its own deadline and stays visible while the other group continues.
 
 Countdowns are recalculated against the browser clock every second, including waiting, perusal/planning, working, AARA extra time, and finished states.
 
@@ -71,7 +71,14 @@ Applied subjects and Short Courses are excluded, as they have no external assess
 
 ## Preview locally
 
-Open `index.html` in a browser. No build process or dependencies are required.
+With Node.js installed, run `npm start` from this folder, then open
+<http://127.0.0.1:4173>. The preview server is available only on this computer.
+Refresh the browser after editing a file to see the latest changes; press Ctrl+C
+in the terminal to stop the server. No build process or dependency installation is
+required.
+
+You can also open `index.html` directly in a browser. Browser storage is separate
+for the local preview URL and a directly opened file.
 
 ## Deploy
 

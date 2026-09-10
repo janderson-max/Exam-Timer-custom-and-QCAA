@@ -189,6 +189,28 @@ main { padding: 24px clamp(18px, 3vw, 48px) 36px; }
 .phase-finished { background: var(--red-soft); }
 .phase-finished .phase-label { background: var(--red); }
 .phase-finished small { color: #82434a; }
+/* Keep both approved groups visible through their own finish, including after the
+   shorter allowance ends. Text accompanies the red finish state so colour is not
+   the only signal. Each numeric slot is fitted independently by the app. */
+.phase [hidden] { display: none !important; }
+.aara-countdowns { flex: 1 1 auto; align-self: stretch; min-height: 0; display: grid; grid-auto-rows: minmax(0, 1fr); gap: clamp(4px, .8vh, 10px); }
+.aara-countdown-group { min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: clamp(4px, .65vh, 8px) 8px; border: 1px solid #ddbd76; border-radius: 7px; background: rgba(255,255,255,.6); }
+.aara-group-label { flex: 0 0 auto; color: #725419; font-size: clamp(.75rem, min(1.25vw, 2vh), 1.3rem); line-height: 1.15; }
+.phase .aara-countdown-group .countdown-slot { min-height: 1.4rem; }
+.phase .aara-countdown-group .countdown-slot.is-fitted { min-height: 0; }
+.aara-countdown-group.is-finished { border-color: #df9ca2; background: var(--red-soft); color: var(--red); }
+.aara-countdown-group.is-finished .aara-group-label,
+.phase .aara-countdown-group.is-finished .aara-group-status { color: #91313a; }
+.aara-group-finished { flex: 1 1 auto; display: flex; align-items: center; font-size: clamp(1rem, min(2.5vw, 4vh), 3rem); line-height: 1; letter-spacing: .02em; }
+/* Two groups share the band vertically. Put each label beside its digits so even
+   a short projector viewport has room for both countdowns and finish notices. */
+.aara-countdown-group:not(:only-child) { display: grid; grid-template-columns: minmax(85px, 1fr) minmax(0, 2.5fr); grid-template-rows: repeat(2, minmax(0, 1fr)); column-gap: 8px; row-gap: 2px; }
+.aara-countdown-group:not(:only-child) .aara-group-label { grid-column: 1; grid-row: 1; align-self: end; }
+.aara-countdown-group:not(:only-child) .aara-group-status { grid-column: 1; grid-row: 2; align-self: start; line-height: 1.15; }
+.aara-countdown-group:not(:only-child) .countdown-slot,
+.aara-countdown-group:not(:only-child) .aara-group-finished { grid-column: 2; grid-row: 1 / -1; align-self: center; }
+.aara-countdown-group:not(:only-child) .countdown-slot:not(.is-fitted) { align-self: stretch; }
+.aara-countdown-group:not(:only-child) .aara-group-finished { display: block; }
 .timeline { padding: 8px 20px 13px; flex: 1 1 auto; display: grid; grid-auto-rows: 1fr; overflow: hidden; }
 .timeline-row { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; overflow: hidden; border-bottom: 1px solid #edf0f4; }
 .timeline-row:last-child { border: 0; }
@@ -364,6 +386,8 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .exam-card { display: grid; grid-template-columns: minmax(190px, .8fr) 1fr 1.2fr; }
   .exam-header { border: 0; }.phase { display: grid; align-content: center; }.timeline { padding-top: 13px; }
   .aara { grid-column: 1 / -1; }
+  .phase:has(.aara-countdowns:not([hidden])) { display: flex; }
+  .aara-countdowns { min-height: 230px; }
 }
 
 @media (max-width: 620px) {
@@ -406,12 +430,11 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .exam-grid { min-height: 0; gap: clamp(9px, 1.2vw, 14px); }
   .exam-card { min-height: 0; display: flex; flex-direction: column; }
   .exam-header { min-height: 0; flex: 0 0 auto; }
-  /* The countdown gets the slack in the card, not the timings list. The floor stops a
-     short window shrinking the band to a sliver, and the clip is a last-ditch guard so
-     the digits can never be drawn over the timings below. */
+  /* Give the timetable slightly more space than the countdown. The floor keeps
+     the phase readable in a short window, including its two AARA groups. */
   .phase {
     min-height: clamp(84px, 14vh, 160px);
-    flex: 1 1 auto;
+    flex: .9 1 auto;
     overflow: hidden;
     gap: clamp(2px, .6vh, 6px);
     padding: clamp(5px, 1vh, 12px) 16px clamp(6px, 1.2vh, 14px);
@@ -419,7 +442,7 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .countdown-slot { min-height: clamp(1.6rem, 5vh, 3rem); }
   /* The timings take a real share of the card rather than only what they need, which
      keeps the coloured band tight around the digits and lets these times run large. */
-  .timeline { min-height: 0; flex: .85 1 auto; grid-auto-rows: minmax(0, 1fr); align-content: stretch; overflow: hidden; padding: clamp(2px, .7vh, 9px) 16px; }
+  .timeline { min-height: 0; flex: 1.1 1 auto; grid-auto-rows: minmax(0, 1fr); align-content: stretch; overflow: hidden; padding: clamp(2px, .7vh, 9px) 16px; }
   .timeline-row { min-height: 0; padding: clamp(1px, .3vh, 3px) 0; }
   .aara { flex: 0 0 auto; margin: 0 16px clamp(5px, 1.1vh, 12px); padding: clamp(4px, .8vh, 9px) 12px; gap: clamp(2px, .5vh, 6px) 12px; }
   /* Card padding follows the viewport too, so a short window loses whitespace before
@@ -434,17 +457,17 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .exam-header p { font-size: clamp(.68rem, min(.95vw, 1.7vh), .9rem); }
   .phase-label { font-size: clamp(.6rem, min(.95vw, 1.7vh), 1rem); padding: clamp(3px, .55vh, 6px) clamp(7px, .7vw, 11px); }
   .phase small { font-size: clamp(.68rem, min(1vw, 1.8vh), 1.05rem); }
-  .exam-grid .exam-card .timeline-row span { font-size: clamp(.66rem, min(1.3vw, 2.3vh), 1.6rem); }
-  .exam-grid .exam-card .timeline-row strong { font-size: clamp(.92rem, min(2.15vw, 3.8vh), 2.9rem); }
-  .exam-grid .exam-card .aara-title { font-size: clamp(.56rem, min(.7vw, 1.25vh), .7rem); }
-  .exam-grid .exam-card .aara-time b { font-size: clamp(.56rem, min(.72vw, 1.3vh), .72rem); }
-  .exam-grid .exam-card .aara strong { font-size: clamp(.78rem, min(1.15vw, 2.05vh), 1.15rem); }
+  .exam-grid .exam-card .timeline-row span { font-size: clamp(.8rem, min(1.55vw, 2.8vh), 1.8rem); line-height: 1.15; }
+  .exam-grid .exam-card .timeline-row strong { font-size: clamp(1.05rem, min(2.55vw, 4.6vh), 3.2rem); line-height: 1.1; }
+  .exam-grid .exam-card .aara-title { font-size: clamp(.62rem, min(.85vw, 1.5vh), .85rem); }
+  .exam-grid .exam-card .aara-time b { font-size: clamp(.62rem, min(.9vw, 1.6vh), .9rem); }
+  .exam-grid .exam-card .aara strong { font-size: clamp(.9rem, min(1.45vw, 2.6vh), 1.45rem); }
 
   /* Side-by-side cards share one set of rows, so the coloured phase bands line up
      across the wall even when one exam has an AARA box and its neighbour does not.
      Without subgrid the cards simply fall back to sizing themselves. */
   @supports (grid-template-rows: subgrid) {
-    .exam-grid:not([data-count="1"]) { grid-template-rows: auto minmax(0, 1fr) .85fr auto; }
+    .exam-grid:not([data-count="1"]) { grid-template-rows: auto minmax(0, .9fr) 1.1fr auto; row-gap: clamp(4px, .7vh, 8px); }
     .exam-grid:not([data-count="1"]) .exam-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; }
     /* No AARA box to sit in the last row, so the timings spread into it. */
     .exam-grid:not([data-count="1"]) .exam-card:not(.has-aara) .timeline { grid-row: 3 / span 2; }
@@ -461,8 +484,8 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   .exam-grid[data-count="1"] .exam-card {
     grid-row: auto;
     display: grid;
-    /* The digits need the width more than the timings do. */
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    /* Widen the timings column while keeping the countdown slightly larger. */
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
   .exam-grid[data-count="1"] .exam-header { grid-column: 1; grid-row: 1; padding: 12px 100px 8px 22px; }
@@ -483,8 +506,8 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   }
   /* With no AARA box the timings take the full height of the right-hand column. */
   .exam-grid[data-count="1"] .exam-card:not(.has-aara) .timeline { grid-row: 1 / -1; }
-  .exam-grid[data-count="1"] .exam-card .timeline-row span { font-size: clamp(.8rem, min(1.5vw, 2.65vh), 1.9rem); line-height: 1.15; }
-  .exam-grid[data-count="1"] .exam-card .timeline-row strong { font-size: clamp(1.05rem, min(2.4vw, 4.25vh), 3.1rem); }
+  .exam-grid[data-count="1"] .exam-card .timeline-row span { font-size: clamp(.95rem, min(1.85vw, 3.3vh), 2.2rem); line-height: 1.15; }
+  .exam-grid[data-count="1"] .exam-card .timeline-row strong { font-size: clamp(1.2rem, min(3.05vw, 5.4vh), 3.8rem); }
   .exam-grid[data-count="1"] .aara { grid-column: 2; grid-row: 3; margin: 0 22px 16px; }
   .exam-grid[data-count="1"] .exam-card .aara-title { font-size: clamp(.6rem, min(.85vw, 1.5vh), .95rem); }
   .exam-grid[data-count="1"] .exam-card .aara-time b { font-size: clamp(.6rem, min(.85vw, 1.5vh), 1rem); }
@@ -493,8 +516,8 @@ dialog h2 { margin-top: 0; }.dialog-actions { display: flex; justify-content: fl
   /* Two exams still have room for a generous label under the digits. */
   .exam-grid[data-count="2"] .phase-label { font-size: clamp(.7rem, min(1.2vw, 2.15vh), 1.4rem); padding: clamp(4px, .6vh, 7px) clamp(9px, .8vw, 15px); }
   .exam-grid[data-count="2"] .phase small { font-size: clamp(.72rem, min(1.15vw, 2.05vh), 1.3rem); }
-  .exam-grid[data-count="2"] .exam-card .timeline-row span { font-size: clamp(.7rem, min(1.35vw, 2.4vh), 1.8rem); }
-  .exam-grid[data-count="2"] .exam-card .timeline-row strong { font-size: clamp(.98rem, min(2.3vw, 4.05vh), 3.2rem); }
+  .exam-grid[data-count="2"] .exam-card .timeline-row span { font-size: clamp(.85rem, min(1.7vw, 3.1vh), 2.1rem); }
+  .exam-grid[data-count="2"] .exam-card .timeline-row strong { font-size: clamp(1.15rem, min(2.9vw, 5.2vh), 3.6rem); }
 
   /* Fullscreen only has to claw back the chrome; the layout above already fills. */
   :fullscreen .topbar { min-height: 78px; padding-top: 8px; padding-bottom: 8px; row-gap: 6px; }
